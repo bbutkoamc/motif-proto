@@ -1,0 +1,14 @@
+# For details on buf.gen.yaml configuration, visit https://buf.build/docs/configuration/v2/buf-gen-yaml
+#
+# Centralized code generation for the Motif protobuf schemas. Output is written
+# to gen/ (gitignored), not committed. Rust (prost) is the current consumer
+# language; add plugins below for additional languages as needed.
+#
+# Note: prost emits the message/enum structs but not custom-option *values*
+# applied to messages/fields. Consumers that read option values do so via a
+# FileDescriptorSet (`buf build -o gen/descriptor.binpb`, which retains options)
+# plus prost-reflect.
+version: v2
+plugins:
+  - remote: buf.build/community/neoeinstein-prost:v0.5.0
+    out: gen/rust/src

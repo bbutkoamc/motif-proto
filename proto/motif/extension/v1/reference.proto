@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package motif.extension.v1;
+
+// A reference to a piece of data. Modeled as a oneof so other reference kinds
+// can be added later as additional arms — a purely additive, wire-compatible
+// change.
+message DataReference {
+  oneof reference {
+    // A reference to an entity.
+    EntityReference entity = 1;
+  }
+}
+
+// A reference to a target entity, optionally in another model.
+message EntityReference {
+  // The target entity's ID. Required.
+  string entity_id = 1;
+
+  // The target model. If unset, the entity is in the same model and version as
+  // the reference (a same-model relationship). Presence of this message is what
+  // makes the relationship cross-model.
+  ModelReference model = 2;
+}
+
+// A reference to a specific version of a model.
+message ModelReference {
+  // The model ID. Required.
+  string model_id = 1;
+
+  // The model version. Required.
+  string model_version = 2;
+}

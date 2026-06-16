@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+// Component types for AI-related functionality (rules, skills, etc.)
+package motif.data.ai.v1;
+
+import "buf/validate/validate.proto";
+import "motif/extension/v1/options.proto";
+
+// A single AI rule, stored as a component on its own entity. The rule text is
+// authored in Markdown. A rule contains system-level instructions for AI agents
+// in a particular scope (such as a Motif model or project).
+//
+// A model's rules are the entities carrying this component. Retrieve them with
+// a Query scoped to the model id and where_all_components = [86].
+message Rule {
+  option (motif.extension.v1.message).component = 86;
+
+  // Rule text, in Markdown.
+  string markdown = 1 [(buf.validate.field).string.max_len = 1024];
+}

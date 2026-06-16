@@ -1,0 +1,34 @@
+# Buf CI/CD, following https://buf.build/docs/bsr/ci-cd/github-actions/
+#
+# bufbuild/buf-action runs the right checks per event automatically:
+#   - pull_request: build, lint, format, and breaking-change detection
+#     (against the PR base branch), with results posted as annotations and a
+#     summary comment. The `buf skip breaking` PR label opts out of breaking.
+#   - push to main: publishes named modules to the BSR (buf push), tagged with
+#     git metadata. Scoped to main so only merged changes are published.
+#   - delete: archives the BSR label for the deleted branch/tag.
+#
+# Requires a BUF_TOKEN repository secret (Settings > Secrets and variables >
+# Actions) for the push and label-archive steps.
+name: Buf CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  delete:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  buf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bufbuild/buf-action@v1
+        with:
+          token: ${{ secrets.BUF_TOKEN }}

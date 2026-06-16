@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+// This package provides the ability to extend the Motif platform by defining
+// new component and relationship types.
+package motif.extension.v1;
+
+import "google/protobuf/descriptor.proto";
+
+// A single extension carrying all Motif message-level options. Add new options
+// as fields on MotifMessageOptions — never a new extension number.
+//
+// 50000 is a temporary internal-range placeholder; it will be replaced with a
+// single public extension number assigned by the protobuf maintainers.
+extend google.protobuf.MessageOptions {
+  optional MotifMessageOptions message = 50000;
+}
+
+// Motif options applied to a message, via `option (motif.extension.v1.message)`.
+message MotifMessageOptions {
+  // Marks a message as a component type and defines its component ID.
+  optional int32 component = 1;
+
+  // Marks a message as a relationship type and defines its relationship ID.
+  // Relationships must define a field with type motif.extension.v1.DataReference.
+  optional int32 relationship = 2;
+}

@@ -1,0 +1,23 @@
+# Minimum mise version. CI installs mise via jdx/mise-action (.github/workflows).
+min_version = "2026.4.5"
+
+[tools]
+"ubi:bufbuild/buf" = { version = "1.68.4" }
+"ubi:tamasfe/taplo" = { version = "0.10.0" }
+
+[tasks.format]
+description = "Format proto and TOML files"
+run = ["buf format -w", "taplo fmt $(git ls-files '*.toml')"]
+
+[tasks.lint]
+description = "Run all linting checks locally (CI uses bufbuild/buf-action)"
+run = [
+  "buf format -d --exit-code",
+  "buf lint",
+  "buf breaking --against '.git#ref=refs/remotes/origin/main'",
+  "taplo fmt --check $(git ls-files '*.toml')",
+]
+
+[tasks.generate]
+description = "Generate language bindings and a descriptor set into gen/ (gitignored)"
+run = ["buf generate", "buf build -o gen/descriptor.binpb"]
