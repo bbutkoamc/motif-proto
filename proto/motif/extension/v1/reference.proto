@@ -2,32 +2,29 @@ syntax = "proto3";
 
 package motif.extension.v1;
 
-// A reference to a piece of data. Modeled as a oneof so other reference kinds
-// can be added later as additional arms — a purely additive, wire-compatible
-// change.
-message DataReference {
-  oneof reference {
-    // A reference to an entity.
-    EntityReference entity = 1;
-  }
-}
+import "buf/validate/validate.proto";
 
-// A reference to a target entity, optionally in another model.
+// A reference to a single target entity.
+//
+// A relationship type carries one or more EntityReference fields as its
+// endpoints (identified structurally by type). If those entities resolve against
+// an external model rather than the relationship's own, the relationship also
+// carries a single ModelReference.
 message EntityReference {
-  // The target entity's ID. Required.
-  string entity_id = 1;
-
-  // The target model. If unset, the entity is in the same model and version as
-  // the reference (a same-model relationship). Presence of this message is what
-  // makes the relationship cross-model.
-  ModelReference model = 2;
+  // The target entity's ID, a 16-byte UUID. Required.
+  bytes entity_id = 1 [(buf.validate.field).bytes.len = 16];
 }
 
 // A reference to a specific version of a model.
+//
+// A relationship without a ModelReference is resolved against the model
+// containing the relationship. A relationship can have at most one
+// ModelReference, and if present, the relationship is resolved against
+// the referenced model and version.
 message ModelReference {
-  // The model ID. Required.
-  string model_id = 1;
+  // The model ID, a 16-byte UUID. Required.
+  bytes model_id = 1 [(buf.validate.field).bytes.len = 16];
 
   // The model version. Required.
-  string model_version = 2;
+  int32 model_version = 2 [(buf.validate.field).int32.gt = 0];
 }

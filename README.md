@@ -43,13 +43,19 @@ message User {
   option (motif.extension.v1.message).component = 86;
 }
 
-// A relationship type. Endpoints are fields of type DataReference, identified
+// A relationship type. Endpoints are fields of type EntityReference, identified
 // structurally by their type — no field option needed. A relationship has at
-// least one.
+// least one EntityReference, and at most one ModelReference (present when its
+// endpoints resolve against an external model).
 message AssignedTo {
   option (motif.extension.v1.message).relationship = 42;
 
-  DataReference assignee = 1;
+  // The entity this relationship points to.
+  EntityReference assignee = 1;
+
+  // Optional. When set, the assignee resolves against this model rather than the
+  // relationship's own model.
+  ModelReference model = 2;
 }
 ```
 
