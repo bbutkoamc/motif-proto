@@ -6,10 +6,9 @@ import "buf/validate/validate.proto";
 
 // A reference to a single target entity.
 //
-// A relationship type carries one or more EntityReference fields as its
-// endpoints (identified structurally by type). If those entities resolve against
-// an external model rather than the relationship's own, the relationship also
-// carries a single ModelReference.
+// If the relationship contains a ModelReference, the referenced entity is
+// resolved against that model and version. If there is no ModelReference in
+// the relationship, the entity is in the model containing this reference.
 message EntityReference {
   // The target entity's ID, a 16-byte UUID. Required.
   bytes entity_id = 1 [(buf.validate.field).bytes.len = 16];
@@ -17,10 +16,10 @@ message EntityReference {
 
 // A reference to a specific version of a model.
 //
-// A relationship without a ModelReference is resolved against the model
-// containing the relationship. A relationship can have at most one
-// ModelReference, and if present, the relationship is resolved against
-// the referenced model and version.
+// A relationship can have at most one ModelReference, and if present, any
+// entity references are resolved against the referenced model and version.
+// If no entity references are present on the relationship, the reference
+// is to the referenced model itself (at the specified version).
 message ModelReference {
   // The model ID, a 16-byte UUID. Required.
   bytes model_id = 1 [(buf.validate.field).bytes.len = 16];

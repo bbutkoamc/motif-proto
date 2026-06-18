@@ -18,12 +18,5 @@ extend google.protobuf.MessageOptions {
 // Motif options applied to a message, via `option (motif.extension.v1.message)`.
 message MotifMessageOptions {
   // Marks a message as a component type and defines its component ID.
-  optional int32 component = 1;
-
-  // Marks a message as a relationship type and defines its relationship ID. A
-  // relationship must define at least one field of type
-  // motif.extension.v1.EntityReference, and may define at most one field of type
-  // motif.extension.v1.ModelReference (present when its endpoints resolve against
-  // an external model).
-  optional int32 relationship = 2;
+  int32 component = 1;
 }
