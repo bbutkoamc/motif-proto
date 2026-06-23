@@ -1,4 +1,4 @@
-# motif-protobuf
+# motif-proto
 
 Protobuf schemas for the Motif platform.
 
