@@ -6,7 +6,7 @@
 #
 # Note: prost emits the message/enum structs but not custom-option *values*
 # applied to messages/fields. Consumers that read option values do so via a
-# FileDescriptorSet (`buf build -o gen/descriptor.binpb`, which retains options)
+# FileDescriptorSet (`buf build -o gen/descriptor.fdset`, which retains options)
 # plus prost-reflect.
 version: v2
 plugins:
