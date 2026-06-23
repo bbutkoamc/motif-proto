@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+// Core component types relevant across most Motif models.
+package motif.data.core.v1;
+
+import "buf/validate/validate.proto";
+import "motif/extension/v1/options.proto";
+import "motif/extension/v1/reference.proto";
+
+// Marks an entity as an instance of another entity.
+message Instance {
+  option (motif.extension.v1.message).component = 25;
+
+  // The entity being instantiated. Required.
+  motif.extension.v1.EntityReference entity = 1 [(buf.validate.field).required = true];
+
+  // Optional. When set, the instantiated entity is resolved against this model
+  // and version rather than the instance's own model.
+  motif.extension.v1.ModelReference model = 2;
+}

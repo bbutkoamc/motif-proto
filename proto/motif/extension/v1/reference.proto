@@ -16,9 +16,9 @@ message EntityReference {
 
 // A reference to a specific version of a model.
 //
-// A relationship can have at most one ModelReference, and if present, any
+// A component can have at most one ModelReference, and if present, any
 // entity references are resolved against the referenced model and version.
-// If no entity references are present on the relationship, the reference
+// If no entity references are present on the component, the reference
 // is to the referenced model itself (at the specified version).
 message ModelReference {
   // The model ID, a 16-byte UUID. Required.
