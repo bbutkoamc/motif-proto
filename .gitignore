@@ -1,6 +1,3 @@
-# Generated code and descriptor sets (produced by `mise run generate`).
-/gen
-
 .mise/
 *.orig
 .DS_Store

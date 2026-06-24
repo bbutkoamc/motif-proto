@@ -17,12 +17,3 @@ run = [
   "buf breaking --against '.git#ref=refs/remotes/origin/main'",
   "taplo fmt --check $(git ls-files '*.toml')",
 ]
-
-[tasks.descriptor]
-description = "Build the options-bearing FileDescriptorSet into gen/descriptor.fdset (gitignored)"
-run = ["mkdir -p gen", "buf build -o gen/descriptor.fdset"]
-
-[tasks.generate]
-description = "Generate language bindings and a descriptor set into gen/ (gitignored)"
-depends = ["descriptor"]
-run = "buf generate"

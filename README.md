@@ -58,10 +58,3 @@ message AssignedTo {
   ModelReference model = 2;
 }
 ```
-
-## Code generation
-
-`buf.gen.yaml` generates bindings into `gen/` (gitignored, not committed).
-Wiring those bindings into a consuming project — and consuming the
-options-bearing `FileDescriptorSet` (`gen/descriptor.fdset`) via reflection — is
-handled per-consumer.

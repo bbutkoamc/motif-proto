@@ -6,9 +6,9 @@ import "buf/validate/validate.proto";
 
 // A reference to a single target entity.
 //
-// If the relationship contains a ModelReference, the referenced entity is
+// If the component contains a ModelReference, the referenced entity is
 // resolved against that model and version. If there is no ModelReference in
-// the relationship, the entity is in the model containing this reference.
+// the component, the entity is in the model containing this reference.
 message EntityReference {
   // The target entity's ID, a 16-byte UUID. Required.
   bytes entity_id = 1 [(buf.validate.field).bytes.len = 16];
