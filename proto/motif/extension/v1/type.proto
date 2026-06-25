@@ -2,51 +2,21 @@ syntax = "proto3";
 
 package motif.extension.v1;
 
+import "google/protobuf/type.proto";
+
 // Declares the expected type for a DataReference.
 //
-// Note: ideally we would be using the WKTs from
-// https://github.com/protocolbuffers/protobuf/blob/main/src/google/protobuf/descriptor.proto
-// for `Label` and `Type`. Unfortunately, a proto3 file cannot reference an enum
-// from a proto2 file, due to incompatible (closed vs. open) enum semantics as
-// documented [here](https://protobuf.dev/programming-guides/enum/#spec). These
-// types have been duplicated here as native proto3 enums with unsupported
-// values removed.
+// Kind and cardinality reuse the enums nested in the well-known
+// `google.protobuf.Field` (google/protobuf/type.proto). These are the proto3
+// (open) equivalents of `FieldDescriptorProto.Type`/`Label`, sharing the same
+// numbering, so they can be referenced directly from this proto3 file.
 message TypeSpec {
   // Field cardinality.
-  enum Label {
-    LABEL_UNSPECIFIED = 0;
-    LABEL_OPTIONAL = 1;
-    LABEL_REPEATED = 3;
-    // LABEL_REQUIRED elided, it doesn't seem useful to include it.
-  }
+  google.protobuf.Field.Cardinality cardinality = 1;
 
-  enum Type {
-    TYPE_UNSPECIFIED = 0;
-    TYPE_DOUBLE = 1;
-    TYPE_FLOAT = 2;
-    TYPE_INT64 = 3;
-    TYPE_UINT64 = 4;
-    TYPE_INT32 = 5;
-    TYPE_FIXED64 = 6;
-    TYPE_FIXED32 = 7;
-    TYPE_BOOL = 8;
-    TYPE_STRING = 9;
-    // TYPE_GROUP elided, it doesn't seem useful to include it.
-    TYPE_MESSAGE = 11;
-    TYPE_BYTES = 12;
-    TYPE_UINT32 = 13;
-    TYPE_ENUM = 14;
-    TYPE_SFIXED32 = 15;
-    TYPE_SFIXED64 = 16;
-    TYPE_SINT32 = 17;
-    TYPE_SINT64 = 18;
-  }
+  // Scalar kind, or TYPE_MESSAGE/TYPE_ENUM for complex types.
+  google.protobuf.Field.Kind kind = 2;
 
-  Label label = 1;
-
-  // Scalar type, or TYPE_MESSAGE/TYPE_ENUM for complex types.
-  Type type = 2;
-
-  // Fully-qualified message or enum name when type is TYPE_MESSAGE or TYPE_ENUM.
+  // Fully-qualified message or enum name when kind is TYPE_MESSAGE or TYPE_ENUM.
   string type_name = 3;
 }
