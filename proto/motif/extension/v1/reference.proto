@@ -3,6 +3,7 @@ syntax = "proto3";
 package motif.extension.v1;
 
 import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
 
 // A reference to a single target entity.
 //
@@ -26,4 +27,67 @@ message ModelReference {
 
   // The model version. Required.
   int32 model_version = 2 [(buf.validate.field).int32.gt = 0];
+}
+
+// A reference to a component, or to a field within a component, on some entity.
+//
+// A DataReference always lands on typed data: the target entity says which
+// entity the data lives on, component_id selects a component on that entity, and
+// an optional path narrows further to a field within that component.
+//
+// As with an EntityReference, if the component contains a ModelReference, an
+// explicit entity_id is resolved against that model and version; otherwise it is
+// in the model containing this reference. (this_entity is always the entity
+// containing this reference.)
+message DataReference {
+  // The target entity. A target must be set: either an explicit entity ID, or
+  // this_entity for the entity containing this reference.
+  oneof target {
+    option (buf.validate.oneof).required = true;
+
+    // The target entity's ID, a 16-byte UUID.
+    bytes entity_id = 1 [(buf.validate.field).bytes.len = 16];
+
+    // The entity containing this reference.
+    google.protobuf.Empty this_entity = 2;
+  }
+
+  // The component ID of the referenced component. Required.
+  int32 component_id = 3 [(buf.validate.field).int32.gt = 0];
+
+  // Path to a specific field within the component. When unset, the reference is
+  // to the whole component.
+  FieldPath path = 4;
+}
+
+// A path through a component's structure, identifying a specific field or
+// collection element.
+message FieldPath {
+  // Ordered sequence of path segments from root to target. Non-empty.
+  repeated PathSegment segments = 1 [(buf.validate.field).repeated.min_items = 1];
+}
+
+// A single step in a field path.
+message PathSegment {
+  // The proto field number to traverse.
+  uint32 field = 1;
+
+  // Selects an element within a repeated or map field. Omit for singular fields
+  // or to reference the entire collection.
+  oneof subscript {
+    // Zero-based index into a repeated field. Note that these references are
+    // not robust to changes in the data. If you need a robust reference into a
+    // map, use one of the key selectors instead.
+    uint64 index = 2;
+    // A key into a bool-keyed map.
+    bool bool_key = 3;
+    // A key into a signed-integer-keyed map (int32, int64, sint32, sint64,
+    // sfixed32, or sfixed64).
+    int64 int_key = 4;
+    // A key into an unsigned-integer-keyed map (uint32, uint64, fixed32, or
+    // fixed64).
+    uint64 uint_key = 5;
+    // A key into a string-keyed map.
+    string string_key = 6;
+  }
 }
