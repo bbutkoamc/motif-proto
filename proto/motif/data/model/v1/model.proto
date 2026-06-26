@@ -1,0 +1,378 @@
+syntax = "proto3";
+
+// Components specific to models and model-related feature sets: workplanes,
+// sketches, levels, walls, joins, and unit settings.
+package motif.data.model.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/empty.proto";
+import "motif/data/geometry/v1/geometry.proto";
+import "motif/extension/v1/options.proto";
+import "motif/extension/v1/reference.proto";
+
+// A marker component identifying a workplane.
+message Workplane {
+  option (motif.extension.v1.message).component = 6;
+}
+
+// The location and orientation of a plane in 3D space.
+message CoordinateSystem3 {
+  option (motif.extension.v1.message).component = 7;
+
+  // The coordinate system geometry.
+  motif.data.geometry.v1.CoordinateSystem3 coordinate_system = 1;
+}
+
+// A marker component identifying a sketch.
+message Sketch {
+  option (motif.extension.v1.message).component = 8;
+}
+
+// A marker component identifying a sketch element.
+//
+// TODO: Consider removing this marker entirely; it may not be necessary.
+message SketchElement {
+  option (motif.extension.v1.message).component = 9;
+}
+
+// 2D curve geometry.
+message Curve2 {
+  option (motif.extension.v1.message).component = 10;
+
+  // The curve geometry.
+  motif.data.geometry.v1.Curve2 curve = 1;
+}
+
+// An x/y/z offset from some other three-dimensional location.
+message XyzOffset {
+  option (motif.extension.v1.message).component = 12;
+
+  // The offset vector.
+  motif.data.geometry.v1.Vector3 offset = 1;
+}
+
+// A marker component identifying a level.
+message Level {
+  option (motif.extension.v1.message).component = 13;
+}
+
+// An elevation that is always relative to a model's zero.
+message RelativeElevation {
+  option (motif.extension.v1.message).component = 14;
+
+  // The elevation, relative to the model's zero, in meters.
+  double elevation = 1;
+}
+
+// The bounding rectangle of a level — center position plus axis spans, all in
+// meters.
+//
+// `center_x` / `center_y` were added after `width` / `depth`; legacy data that
+// pre-dates the center fields loads with center = (0, 0), which matches the
+// pre-existing assumption that levels were anchored at the world origin.
+message LevelExtent {
+  option (motif.extension.v1.message).component = 62;
+
+  // East-west span, in meters.
+  double width = 1;
+  // North-south span, in meters.
+  double depth = 2;
+  // X coordinate of the level's center, in world meters.
+  double center_x = 3;
+  // Y coordinate of the level's center, in world meters.
+  double center_y = 4;
+}
+
+// A marker component identifying a wall.
+message Wall {
+  option (motif.extension.v1.message).component = 15;
+}
+
+// Parameters defining how a wall's base footprint is determined.
+message BaseFootprintParams {
+  option (motif.extension.v1.message).component = 16;
+
+  // Defines how the base footprint of a wall should be determined.
+  BaseFootprintKind kind = 2;
+
+  // The strategy used to determine a wall's base footprint.
+  message BaseFootprintKind {
+    // The footprint strategy.
+    oneof kind {
+      // The base footprint is created by offsetting a curve from a sketch
+      // element by some amount.
+      OffsetSketchElementParams offset_curve = 1;
+    }
+
+    // The information necessary to determine how a 2D curve should be offset.
+    //
+    // For now, assumes the curve is offset symmetrically — half of `width` in
+    // either direction. Specific controls over this behavior may be added later.
+    message OffsetSketchElementParams {
+      // The total offset width.
+      double width = 1;
+    }
+  }
+}
+
+// Parameters defining how some 2D source geometry is converted into a 3D
+// representation.
+message ExtrudedWall {
+  option (motif.extension.v1.message).component = 17;
+
+  // Will be reset by change propagation if an `ExtrusionEndReference` exists,
+  // calculated as the distance to the referenced plane minus the offset.
+  // Otherwise set by the user.
+  double depth = 1;
+  // Extrusion direction. Will be reset by change propagation if an
+  // `ExtrusionDirectionReference` exists.
+  motif.data.geometry.v1.UnitVector3 direction = 2;
+  // Offset of the extrusion start along the direction.
+  double start_offset = 3;
+}
+
+// A marker component identifying a default workplane.
+message DefaultWorkplane {
+  option (motif.extension.v1.message).component = 18;
+}
+
+// Both top-offset values a wall remembers, independent of its active
+// top-attachment mode.
+//
+// The active extrusion components are derived from the slot matching the mode;
+// the other slot stays dormant so toggling modes round-trips without losing the
+// user's value.
+message WallTopOffsets {
+  option (motif.extension.v1.message).component = 88;
+
+  // Offset relative to the referenced level's elevation, used by the
+  // level-attached modes (the `ExtrusionEndReference` offset source).
+  double level_relative = 1;
+  // Absolute wall height in meters, used by the unattached modes (the
+  // `ExtrudedWall.depth` magnitude source) and by the regen fallback when a
+  // level-attached wall's level cannot be resolved.
+  double absolute = 2;
+}
+
+// Indicates that this entity derives a plane from the target entity.
+//
+// The target entity may be deleted while this relationship exists; application
+// logic must gracefully handle that scenario.
+message ExtrusionEndReference {
+  option (motif.extension.v1.message).component = 26;
+
+  // The entity supplying the plane. Required.
+  motif.extension.v1.EntityReference target = 1 [(buf.validate.field).required = true];
+  // Offset from the referenced plane.
+  double offset = 2;
+}
+
+// A join between two or more entities.
+message Join {
+  option (motif.extension.v1.message).component = 27;
+
+  // The participating entities. Must contain at least one.
+  repeated JoinEntity entities = 1 [(buf.validate.field).repeated.min_items = 1];
+
+  // One participant in a join, and where along its curve it is anchored.
+  message JoinEntity {
+    // The participating entity. Required.
+    motif.extension.v1.EntityReference entity = 1 [(buf.validate.field).required = true];
+    // Where on the entity's curve the join is located.
+    JoinLocationKind kind = 2;
+
+    // The location along a participant's curve at which it joins.
+    message JoinLocationKind {
+      // The anchor location.
+      oneof kind {
+        // The start of the curve.
+        google.protobuf.Empty start = 1;
+        // The end of the curve.
+        google.protobuf.Empty end = 2;
+        // A specific curve parameter.
+        double param = 3;
+      }
+    }
+  }
+}
+
+// The type of join that an entity represents.
+message JoinKind {
+  option (motif.extension.v1.message).component = 19;
+
+  // The join type.
+  JoinType kind = 1;
+
+  // The concrete kind of join.
+  message JoinType {
+    // The join variant.
+    oneof kind {
+      // A butt join.
+      google.protobuf.Empty butt = 1;
+    }
+  }
+}
+
+// The order in which elements in a join are processed.
+message JoinOrder {
+  option (motif.extension.v1.message).component = 20;
+
+  // The ordering strategy.
+  JoinOrderKind kind = 1;
+
+  // The concrete join-ordering strategy.
+  message JoinOrderKind {
+    // The ordering variant.
+    oneof kind {
+      // The default ordering.
+      google.protobuf.Empty default = 1;
+      // The index of the first element.
+      uint64 first = 2;
+      // Explicit first and second elements.
+      FirstAndSecond first_and_second = 3;
+    }
+
+    // An explicit first and second element ordering.
+    message FirstAndSecond {
+      // The index of the first element.
+      uint64 first = 1;
+      // The index of the second element.
+      uint64 second = 2;
+    }
+  }
+}
+
+// Reference to a plane source entity.
+message PlanarReference {
+  option (motif.extension.v1.message).component = 28;
+
+  // The entity supplying the plane. Required.
+  motif.extension.v1.EntityReference target = 1 [(buf.validate.field).required = true];
+}
+
+// Reference for extrusion direction.
+message ExtrusionDirectionReference {
+  option (motif.extension.v1.message).component = 29;
+
+  // The entity supplying the extrusion direction. Required.
+  motif.extension.v1.EntityReference target = 1 [(buf.validate.field).required = true];
+}
+
+// A system of measurement.
+enum UnitSystem {
+  // Unspecified unit system.
+  UNIT_SYSTEM_UNSPECIFIED = 0;
+  // Imperial units.
+  UNIT_SYSTEM_IMPERIAL = 1;
+  // Metric units.
+  UNIT_SYSTEM_METRIC = 2;
+}
+
+// How unit values are notated.
+enum UnitNotation {
+  // Unspecified notation.
+  UNIT_NOTATION_UNSPECIFIED = 0;
+  // Fractional notation.
+  UNIT_NOTATION_FRACTIONAL = 1;
+  // Decimal notation.
+  UNIT_NOTATION_DECIMAL = 2;
+}
+
+// A unit of length.
+enum LengthUnit {
+  // Unspecified length unit.
+  LENGTH_UNIT_UNSPECIFIED = 0;
+  // Millimeters.
+  LENGTH_UNIT_MILLIMETER = 1;
+  // Centimeters.
+  LENGTH_UNIT_CENTIMETER = 2;
+  // Meters.
+  LENGTH_UNIT_METER = 3;
+  // Kilometers.
+  LENGTH_UNIT_KILOMETER = 4;
+  // Inches.
+  LENGTH_UNIT_INCH = 5;
+  // Feet.
+  LENGTH_UNIT_FOOT = 6;
+  // Yards.
+  LENGTH_UNIT_YARD = 7;
+  // Miles.
+  LENGTH_UNIT_MILE = 8;
+}
+
+// A unit of area.
+enum AreaUnit {
+  // Unspecified area unit.
+  AREA_UNIT_UNSPECIFIED = 0;
+  // Square millimeters.
+  AREA_UNIT_SQUARE_MILLIMETER = 1;
+  // Square centimeters.
+  AREA_UNIT_SQUARE_CENTIMETER = 2;
+  // Square meters.
+  AREA_UNIT_SQUARE_METER = 3;
+  // Square kilometers.
+  AREA_UNIT_SQUARE_KILOMETER = 4;
+  // Square inches.
+  AREA_UNIT_SQUARE_INCH = 5;
+  // Square feet.
+  AREA_UNIT_SQUARE_FOOT = 6;
+  // Square yards.
+  AREA_UNIT_SQUARE_YARD = 7;
+  // Square miles.
+  AREA_UNIT_SQUARE_MILE = 8;
+}
+
+// A unit of angle.
+enum AngleUnit {
+  // Unspecified angle unit.
+  ANGLE_UNIT_UNSPECIFIED = 0;
+  // Radians.
+  ANGLE_UNIT_RADIAN = 1;
+  // Degrees.
+  ANGLE_UNIT_DEGREE = 2;
+}
+
+// Length unit, notation, and display precision.
+message LengthUnitGroup {
+  // The length unit.
+  LengthUnit unit = 1;
+  // The notation used to display values.
+  UnitNotation notation = 2;
+  // The number of fractional digits or denominator precision used for display.
+  uint32 precision = 3;
+}
+
+// Area unit, notation, and display precision.
+message AreaUnitGroup {
+  // The area unit.
+  AreaUnit unit = 1;
+  // The notation used to display values.
+  UnitNotation notation = 2;
+  // The number of fractional digits or denominator precision used for display.
+  uint32 precision = 3;
+}
+
+// Angle unit, notation, and display precision.
+message AngleUnitGroup {
+  // The angle unit.
+  AngleUnit unit = 1;
+  // The notation used to display values.
+  UnitNotation notation = 2;
+  // The number of fractional digits used for display.
+  uint32 precision = 3;
+}
+
+// The unit settings for a model: the overall system plus per-quantity display
+// configuration.
+message ModelUnitSettings {
+  option (motif.extension.v1.message).component = 73;
+
+  // The overall unit system.
+  UnitSystem unit_system = 1;
+  // Length display settings.
+  LengthUnitGroup length = 2;
+  // Area display settings.
+  AreaUnitGroup area = 3;
+  // Angle display settings.
+  AngleUnitGroup angle = 4;
+}

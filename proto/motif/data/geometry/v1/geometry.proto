@@ -1,0 +1,179 @@
+syntax = "proto3";
+
+// Shared geometric primitives — points, vectors, coordinate systems, and curves —
+// used as building blocks by Motif component data types. These are plain data
+// types and are not themselves components.
+package motif.data.geometry.v1;
+
+import "google/protobuf/empty.proto";
+
+// A point in two-dimensional space.
+message Point2 {
+  // X coordinate.
+  double x = 1;
+  // Y coordinate.
+  double y = 2;
+}
+
+// A point in three-dimensional space.
+message Point3 {
+  // X coordinate.
+  double x = 1;
+  // Y coordinate.
+  double y = 2;
+  // Z coordinate.
+  double z = 3;
+}
+
+// A two-dimensional vector expected to have unit length.
+message UnitVector2 {
+  // X component.
+  double x = 1;
+  // Y component.
+  double y = 2;
+}
+
+// A free vector in three-dimensional space.
+message Vector3 {
+  // X component.
+  double x = 1;
+  // Y component.
+  double y = 2;
+  // Z component.
+  double z = 3;
+}
+
+// An axis-angle rotation in vector form. The rotation axis is the normalized
+// vector and the angle is the magnitude of the vector.
+message AxisAngle {
+  // X component of the axis-angle vector.
+  double x = 1;
+  // Y component of the axis-angle vector.
+  double y = 2;
+  // Z component of the axis-angle vector.
+  double z = 3;
+}
+
+// A three-dimensional vector expected to have unit length.
+message UnitVector3 {
+  // X component.
+  double x = 1;
+  // Y component.
+  double y = 2;
+  // Z component.
+  double z = 3;
+}
+
+// A right-handed local coordinate system in two-dimensional space.
+message CoordinateSystem2 {
+  // The origin of the coordinate system.
+  Point2 origin = 1;
+  // The local X axis; the Y axis is derived as its left-hand perpendicular.
+  UnitVector2 x_axis = 2;
+}
+
+// A local coordinate system in three-dimensional space, defined by its origin
+// and X and Z axes (the Y axis is derived as their cross product).
+message CoordinateSystem3 {
+  // The origin of the coordinate system.
+  Point3 origin = 1;
+  // The local X axis.
+  UnitVector3 x_axis = 2;
+  // The local Z axis.
+  UnitVector3 z_axis = 3;
+}
+
+// A parametric interval, with each bound either a finite value or unbounded.
+message Domain {
+  // The lower bound of the interval.
+  oneof start_bound {
+    // A finite start value.
+    double start = 1;
+    // The interval is unbounded below.
+    google.protobuf.Empty negative_infinity = 2;
+  }
+
+  // The upper bound of the interval.
+  oneof end_bound {
+    // A finite end value.
+    double end = 3;
+    // The interval is unbounded above.
+    google.protobuf.Empty positive_infinity = 4;
+  }
+}
+
+// A two-dimensional curve, one of several concrete curve kinds.
+message Curve2 {
+  // The concrete curve geometry.
+  oneof curve_type {
+    // A straight line segment.
+    Line2 line = 1;
+    // A circular arc.
+    Circle2 circle = 2;
+    // An elliptical arc.
+    Ellipse2 ellipse = 3;
+  }
+}
+
+// A line in two-dimensional space, parameterized over a domain.
+message Line2 {
+  // A point on the line (the parametric origin).
+  Point2 origin = 1;
+  // The line's direction.
+  UnitVector2 dir = 2;
+  // The parametric extent of the segment.
+  Domain domain = 3;
+}
+
+// A circle (or circular arc) in two-dimensional space.
+message Circle2 {
+  // Local coordinate system; the origin is the circle center.
+  CoordinateSystem2 lcs = 1;
+  // The circle radius.
+  double radius = 2;
+  // The angular extent of the arc.
+  Domain domain = 3;
+  // Winding direction: false (proto3 default) = CCW; true = CW.
+  bool is_cw = 4;
+}
+
+// An ellipse (or elliptical arc) in two-dimensional space.
+message Ellipse2 {
+  // Local coordinate system; the origin is the ellipse center and the X axis is
+  // the major axis direction.
+  CoordinateSystem2 lcs = 1;
+  // The semi-major axis length.
+  double major = 2;
+  // The semi-minor axis length.
+  double minor = 3;
+  // The angular extent of the arc.
+  Domain domain = 4;
+  // Winding direction: false (proto3 default) = CCW; true = CW.
+  bool is_cw = 5;
+}
+
+// A width and height pair describing a two-dimensional size.
+message Size2 {
+  // Extent along the X axis.
+  double width = 1;
+  // Extent along the Y axis.
+  double height = 2;
+}
+
+// A planar surface in three-dimensional space.
+//
+// Parameter `(u, v)` evaluates to `origin + u * u_axis + v * (normal × u_axis)`
+// when the axes are orthogonal. Domains bound the valid `(u, v)` hosting
+// coordinates on the plane.
+message Plane {
+  // A point on the plane (the parametric origin).
+  Point3 origin = 1;
+  // The plane's U-direction axis.
+  UnitVector3 u_axis = 2;
+  // The plane's normal direction.
+  UnitVector3 normal = 3;
+  // Valid extent along the U direction.
+  Domain u_domain = 4;
+  // Valid extent along the V direction.
+  Domain v_domain = 5;
+}

@@ -1,0 +1,519 @@
+syntax = "proto3";
+
+// Components and behaviors whose schemas are not yet finalized or are otherwise
+// temporary. Expect churn here; types may be promoted to a stable package or
+// removed.
+package motif.data.temporary.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/any.proto";
+import "motif/data/geometry/v1/geometry.proto";
+import "motif/extension/v1/options.proto";
+import "motif/extension/v1/reference.proto";
+import "motif/extension/v1/type.proto";
+
+// A marker component which, for the March demo, allows an entity to act like a
+// model.
+message MockModel {
+  option (motif.extension.v1.message).component = 39;
+}
+
+// An in-development component which informs the change-propagation server to
+// construct a rectangular prism by converting width and height into a vertical
+// rectangular profile swept along a curve.
+message SweepWidthHeightAlongCurveBehavior {
+  option (motif.extension.v1.message).component = 63;
+}
+
+// A component which defines a set of exposed parameters.
+//
+// Generally added to parametric asset entities whose children wire the values
+// into behaviors.
+message ParameterDeclarations {
+  option (motif.extension.v1.message).component = 89;
+
+  // The declared parameters, keyed by parameter name.
+  map<string, ParameterDeclaration> declarations = 1;
+}
+
+// The definition of a single parameter.
+//
+// `expected_type` is the declared payload type the corresponding
+// `ResolvedParameters` entry must carry. Behaviors that consume the resolved
+// value declare a `data_reference_expected_type` matching the same `TypeSpec`.
+message ParameterDeclaration {
+  // The parameter name.
+  string name = 1;
+  // A human-readable description of the parameter.
+  string description = 2;
+  // The declared payload type for this parameter.
+  motif.extension.v1.TypeSpec expected_type = 3;
+
+  // Optional default literal for hive/UI/placement authoring (meters for
+  // TYPE_DOUBLE). Not read by change propagation; instance bindings supply CP
+  // values at placement.
+  optional google.protobuf.Any default_value = 4;
+}
+
+// The map of resolved parameters.
+//
+// Generally constructed by a `ParameterBindingsBehavior` as part of
+// regeneration. Each entry's `Any` payload type is constrained by the
+// corresponding `ParameterDeclaration.expected_type`.
+message ResolvedParameters {
+  option (motif.extension.v1.message).component = 90;
+
+  // The resolved parameter values, keyed by parameter name.
+  map<string, google.protobuf.Any> values = 1;
+}
+
+// A parameter binding supplied by an instance to satisfy one entry in
+// `ParameterDeclarations`.
+//
+// A binding is either a literal `Any` payload (matching the declared
+// `expected_type`) or a `DataReference` pointing at a concrete value.
+message ParameterBinding {
+  // How the parameter value is supplied.
+  oneof source {
+    // A literal value matching the declared `expected_type`.
+    google.protobuf.Any value = 1;
+
+    // The bound value's type is resolved per `ParameterDeclaration` at runtime,
+    // so a static data_reference_expected_type is intentionally not set here.
+    // buf:lint:ignore MOTIF_DATA_REFERENCE_MISSING_EXPECTED_TYPE
+    motif.extension.v1.DataReference data_ref = 2;
+  }
+}
+
+// The behavior which operates on `ParameterDeclarations` and `ResolvedParameters`.
+//
+// This behavior's regeneration logic is as follows:
+// * Find the `ParameterDeclarations` component by following the `declarations`
+//   pointer.
+// * Construct a `ResolvedParameters` component from the keys in
+//   `ParameterDeclarations` and values in `bindings`.
+// * Write the `ResolvedParameters` component to the `resolved` entity.
+message ParameterBindingsBehavior {
+  option (motif.extension.v1.message).component = 91;
+
+  // Pointer to the source `ParameterDeclarations`.
+  motif.extension.v1.DataReference declarations = 1 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.temporary.v1.ParameterDeclarations"
+    }
+  ];
+
+  // Pointer to the `ResolvedParameters` destination.
+  motif.extension.v1.DataReference resolved = 2 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.temporary.v1.ResolvedParameters"
+    }
+  ];
+
+  // The bindings used to resolve each declared parameter, keyed by name.
+  map<string, ParameterBinding> bindings = 3;
+}
+
+// A behavior which generates a three-dimensional solid.
+//
+// The solid is constructed as follows:
+// * A rectangular profile is created from the `width` and `height` values in a
+//   plane perpendicular to the one defined by `coordinate_system`. The profile
+//   is centered on `curve`.
+// * The generated profile is swept along the curve from start to end.
+// * The generated solid is written to the `output` entity as a `Shape`.
+message SweepWidthHeightAlongCurveBehaviorV2 {
+  option (motif.extension.v1.message).component = 92;
+
+  // The profile width.
+  motif.extension.v1.DataReference width = 1 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {kind: TYPE_DOUBLE}
+  ];
+
+  // The profile height.
+  motif.extension.v1.DataReference height = 2 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {kind: TYPE_DOUBLE}
+  ];
+
+  // The curve to sweep the profile along.
+  motif.extension.v1.DataReference curve = 3 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.geometry.v1.Curve2"
+    }
+  ];
+
+  // The coordinate system that places the curve and profile in world space.
+  motif.extension.v1.DataReference coordinate_system = 4 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.geometry.v1.CoordinateSystem3"
+    }
+  ];
+
+  // The entity the generated `Shape` is written to.
+  motif.extension.v1.DataReference output = 5 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.temporary.v1.Shape"
+    }
+  ];
+}
+
+// Identifies a behavior whose regeneration function is as follows:
+// * Read the `Shape` component from the `shape` reference.
+// * Convert the `Shape` into a triangular mesh.
+// * Write the mesh to the `mesh` reference.
+message ConvertShapeToMeshBehavior {
+  option (motif.extension.v1.message).component = 93;
+
+  // The source shape to convert.
+  motif.extension.v1.DataReference shape = 1 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.temporary.v1.Shape"
+    }
+  ];
+
+  // The entity the generated `Mesh` is written to.
+  motif.extension.v1.DataReference mesh = 2 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.core.v1.Mesh"
+    }
+  ];
+}
+
+// B-rep geometry.
+//
+// `bodies` carries one OCCT BRepTools binary payload per body in the shape.
+message Shape {
+  option (motif.extension.v1.message).component = 94;
+
+  // One OCCT BRepTools binary payload per body.
+  repeated bytes bodies = 1;
+}
+
+// The type of join represented.
+enum JoinKind {
+  // Unspecified join kind.
+  JOIN_KIND_UNSPECIFIED = 0;
+  // A butt join.
+  JOIN_KIND_BUTT = 1;
+}
+
+// Which part of the participant's curve is anchored at the join.
+//
+// `START` / `END` point at a specific spine endpoint. `CURVE` indicates that
+// the participant's whole curve takes part in the join (the participant
+// passes through the join location rather than terminating at it). A
+// participant with `CURVE` is always treated as the through wall regardless
+// of its position in `JoinBehavior.participants`; the other participant must
+// then carry a `START` or `END` endpoint that lies on the through wall's
+// curve. A join with two `CURVE` participants is rejected.
+enum JoinEndpointKind {
+  // Unspecified endpoint kind.
+  JOIN_ENDPOINT_KIND_UNSPECIFIED = 0;
+  // The participant's curve start is anchored at the join.
+  JOIN_ENDPOINT_KIND_START = 1;
+  // The participant's curve end is anchored at the join.
+  JOIN_ENDPOINT_KIND_END = 2;
+  // The participant's whole curve takes part in the join.
+  JOIN_ENDPOINT_KIND_CURVE = 3;
+}
+
+// Per-entity layout description that turns an entity into a join participant.
+//
+// Holds four `DataReference`s naming the participant's `curve`, `width`,
+// `coordinate_system`, and `shape` slots.
+//
+// ## Two manual copy steps
+//
+// `JoinableMetadata` is the source of truth for "where does this entity keep
+// its joinable layout?". It is currently propagated by **two manual copies**
+// performed outside change propagation:
+//
+//  1. **Asset → Instance (at instance-creation time).** When a tool/runtime
+//     spawns an instance of an asset that has `JoinableMetadata`, it copies
+//     the component verbatim onto the instance entity. Because the inner
+//     `DataReference`s use `this_entity`, the same wire bytes naturally resolve
+//     to the instance's own slots when re-decoded on the instance.
+//
+//     **Why this is manual, not a behavior:** the obvious alternative is an
+//     asset-attached "AssignJoinableMetadata" behavior that materializes the
+//     instance copy at regen time. Change propagation does not currently
+//     support regenerating data that itself contains `DataReference`s and then
+//     consuming those `DataReference`s in the same regeneration pass — the
+//     framework has no story for "this slot was just produced by a regen and
+//     also needs its inner pointers to be honored by downstream resolve calls
+//     in the same pass." When that capability is added, this copy should become
+//     a behavior.
+//
+//  2. **Instance → Join (at join-creation time).** When a tool authors a new
+//     `JoinBehavior`, it reads each participant entity's `JoinableMetadata`
+//     and copies the four inner `DataReference`s into the corresponding
+//     `JoinParticipant` fields on the join entity. The copy must **remap
+//     `this_entity` to an explicit `entity_id` (the participant entity id)**
+//     because the join entity is *not* the participant entity, so leaving the
+//     wire form as `this_entity` would resolve to the wrong host.
+//
+//     **Why this is also manual:** the natural alternative is for
+//     `JoinParticipant` to hold a single `DataReference` to the participant's
+//     `JoinableMetadata` and have the framework follow that pointer to
+//     discover the four leaf refs. Change propagation's persistence loader
+//     does **single-hop** `DataReference` walks — it loads what a relationship's
+//     direct refs point at, but does not then walk the loaded component's
+//     own refs. As a result, the participant's `Shape`/`ResolvedParameters`
+//     never enter the model and `JoinBehavior::register` cannot resolve
+//     them. Until the loader grows multi-hop / recursive walks (an explicit
+//     framework change), the join carries the leaf refs directly.
+//
+// **Why the copies are safe:** in both cases we are copying *structural*
+// pointers (slot kinds + paths), not the values they point at. The inner
+// `DataReference`s do not change once the asset is authored — only the values at
+// the targeted slots do, and those are re-resolved at each regen via the
+// (single) hop the framework already performs.
+message JoinableMetadata {
+  option (motif.extension.v1.message).component = 95;
+
+  // The participant's spine curve slot.
+  motif.extension.v1.DataReference curve = 1 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.geometry.v1.Curve2"
+    }
+  ];
+
+  // The participant's width slot.
+  motif.extension.v1.DataReference width = 2 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {kind: TYPE_DOUBLE}
+  ];
+
+  // The participant's coordinate-system slot.
+  motif.extension.v1.DataReference coordinate_system = 3 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.geometry.v1.CoordinateSystem3"
+    }
+  ];
+
+  // The participant's shape slot.
+  motif.extension.v1.DataReference shape = 4 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.temporary.v1.Shape"
+    }
+  ];
+}
+
+// Data references to one participant's state needed by the join.
+message JoinParticipant {
+  // The participant's spine curve slot.
+  motif.extension.v1.DataReference curve = 1 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.geometry.v1.Curve2"
+    }
+  ];
+
+  // The participant's width slot.
+  motif.extension.v1.DataReference width = 2 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {kind: TYPE_DOUBLE}
+  ];
+
+  // The participant's coordinate-system slot.
+  motif.extension.v1.DataReference coordinate_system = 3 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.geometry.v1.CoordinateSystem3"
+    }
+  ];
+
+  // The participant's shape slot.
+  motif.extension.v1.DataReference shape = 4 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.temporary.v1.Shape"
+    }
+  ];
+
+  // Which part of the participant's curve is anchored at the join.
+  JoinEndpointKind endpoint = 5;
+}
+
+// A behavior which defines a join between one or more participants.
+//
+// Participants are assigned priority based on the order of the `participants`
+// collection. The first and second participants are the primary definers of the
+// result geometry, and all other participants adapt to that geometry. In the
+// future we will allow changing priority without modifying the collection.
+message JoinBehavior {
+  option (motif.extension.v1.message).component = 96;
+
+  // The kind of join.
+  JoinKind kind = 1;
+  // The participants in the join, in priority order.
+  repeated JoinParticipant participants = 2;
+}
+
+// A planar hosting surface trimmed to the valid placement region on a host
+// entity.
+//
+// The hosting plane is computed from the same inputs as the host's swept
+// geometry so the two stay consistent: `curve` + `coordinate_system` give the
+// plane's origin (curve start), its u-axis (curve start tangent) and normal (the
+// host's thickness direction), and the u-extent (the curve length); `height` is
+// the v-extent (the host height, measured from the base up).
+message TrimmedHostingSurface {
+  option (motif.extension.v1.message).component = 97;
+
+  // The trimmed hosting plane.
+  motif.data.geometry.v1.Plane surface = 1;
+
+  // The host's spine curve, in `coordinate_system` space. Supplies the plane
+  // origin, u-axis and u-extent (the curve length).
+  motif.extension.v1.DataReference curve = 2 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.geometry.v1.Curve2"
+    }
+  ];
+
+  // Plane height extent (v) in the plane's parametric coordinates.
+  motif.extension.v1.DataReference height = 3 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {kind: TYPE_DOUBLE}
+  ];
+
+  // The coordinate system that lifts `curve` into world space (the host spine
+  // frame).
+  motif.extension.v1.DataReference coordinate_system = 4 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.geometry.v1.CoordinateSystem3"
+    }
+  ];
+}
+
+// A behavior which identifies an entity as a host for other hosted entities.
+message HostBehavior {
+  option (motif.extension.v1.message).component = 98;
+
+  // The host's trimmed hosting surface.
+  motif.extension.v1.DataReference hosting_surface = 1 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.temporary.v1.TrimmedHostingSurface"
+    }
+  ];
+}
+
+// A behavior which identifies an entity as hosted on another entity's hosting
+// surface.
+//
+// Regeneration reads the host's trimmed hosting surface and the stored
+// parametric coordinate, then writes the hosted entity's absolute transform.
+message HostedBehavior {
+  option (motif.extension.v1.message).component = 99;
+
+  // The host's trimmed hosting surface.
+  motif.extension.v1.DataReference host_surface = 1 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.temporary.v1.TrimmedHostingSurface"
+    }
+  ];
+
+  // The parametric coordinate on the hosting surface.
+  motif.extension.v1.DataReference parametric_coordinate = 2 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.geometry.v1.Point2"
+    }
+  ];
+
+  // The entity the computed absolute transform is written to.
+  motif.extension.v1.DataReference absolute_transform = 3 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.core.v1.Isometry"
+    }
+  ];
+}
+
+// A behavior which subtracts one profile solid from a target geometry.
+//
+// Regeneration reads the target geometry, builds a profile solid from the
+// supplied dimensions and placement on the host surface, and writes the cut
+// result back to the target geometry slot using a pipeline write sequence.
+message CutGeometryBehavior {
+  option (motif.extension.v1.message).component = 100;
+
+  // The geometry to cut into; the cut result is written back here.
+  motif.extension.v1.DataReference target_geometry = 1 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.temporary.v1.Shape"
+    }
+  ];
+
+  // The hosted element's world-space placement transform (e.g. the `Isometry` a
+  // `HostedBehavior` writes). Its translation is the cut center; its rotation
+  // supplies the host-surface frame from which the cut derives the profile plane
+  // and the extrusion direction.
+  motif.extension.v1.DataReference cut_transform = 2 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.core.v1.Isometry"
+    }
+  ];
+
+  // World-space extrusion vector for the cutter prism. Thickness is
+  // `|extrusion|`.
+  motif.extension.v1.DataReference extrusion = 3 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.geometry.v1.Vector3"
+    }
+  ];
+
+  // The profile width.
+  motif.extension.v1.DataReference profile_width = 4 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {kind: TYPE_DOUBLE}
+  ];
+
+  // The profile height.
+  motif.extension.v1.DataReference profile_height = 5 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {kind: TYPE_DOUBLE}
+  ];
+}

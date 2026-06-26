@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+// FDE imported site-context components (OSM vector layers and baked raster
+// metadata).
+//
+// All site geometry lives in project shared meters (east, north); the WGS84 ->
+// shared conversion happens at ingest, not at runtime. The georeferencing spine
+// (`ProjectGeolocation`, `SharedCoordinateOrigin`, `ModelPlacement`) ties these
+// shared-meter coordinates to true north and to model placements.
+package motif.data.fde.v1;
+
+import "motif/extension/v1/options.proto";
+
+// Anchor for an imported site-context subtree. Attach to the container entity
+// that parents all `SiteRoad` and `SiteBuilding` entities.
+message SiteContextRoot {
+  option (motif.extension.v1.message).component = 82;
+
+  // Ingest provenance, e.g. "overpass", "maptiler", "fixture".
+  optional string ingest_source = 1;
+  // Identifier of the source snapshot.
+  optional string snapshot_id = 2;
+
+  // Query/cull bounding box in project shared meters (east, north).
+  double bbox_min_x = 3;
+  double bbox_min_y = 4;
+  double bbox_max_x = 5;
+  double bbox_max_y = 6;
+}
+
+// An OSM highway way — metadata only.
+//
+// The centerline geometry lives on the same entity as a
+// `motif.data.model.v1.Curve2` polyline (shared meters, Z=0 plane). OSM tags
+// beyond those kept here go in `motif.data.core.v1.ForeignProperties` under
+// `osm.*` keys.
+message SiteRoad {
+  option (motif.extension.v1.message).component = 83;
+
+  // The OSM way id.
+  uint64 osm_way_id = 1;
+  // The OSM `highway=*` class (motorway, residential, ...).
+  optional string highway = 2;
+}
+
+// An OSM building way — metadata only.
+//
+// The footprint geometry lives on the same entity as a
+// `motif.data.fde.v1.PlanFootprint2D` (OGC WKB MultiPolygon). `height_m` is the
+// extrusion hint (OSM `height` or `building:levels`); the full tag bag goes in
+// `motif.data.core.v1.ForeignProperties`.
+message SiteBuilding {
+  option (motif.extension.v1.message).component = 84;
+
+  // The OSM way id.
+  uint64 osm_way_id = 1;
+  // The building height, in meters, when known.
+  optional double height_m = 2;
+  // The OSM `name` tag, when present.
+  optional string name = 3;
+}
+
+// A baked slippy-map raster mosaic — metadata only (offline fallback).
+//
+// The render companion is a `motif.data.core.v1.Mesh` plus a texture asset on
+// the same entity; the corners form a shared-meter ground quad (Z=0).
+message SiteRasterGround {
+  option (motif.extension.v1.message).component = 85;
+
+  // Corner coordinates of the ground quad, in shared meters.
+  double corner_0_x = 1;
+  double corner_0_y = 2;
+  double corner_1_x = 3;
+  double corner_1_y = 4;
+  double corner_2_x = 5;
+  double corner_2_y = 6;
+  double corner_3_x = 7;
+  double corner_3_y = 8;
+  // Identifier of the baked texture asset.
+  optional bytes texture_asset_id = 9;
+  // The slippy-map zoom level the mosaic was baked at.
+  optional uint32 zoom_level = 10;
+}

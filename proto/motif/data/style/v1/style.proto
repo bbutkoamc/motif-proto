@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+// Styling components: color, opacity, and line styling applied to entities.
+package motif.data.style.v1;
+
+import "buf/validate/validate.proto";
+import "motif/extension/v1/options.proto";
+
+// A color, expressed in either the sRGB or linear-RGB color space.
+message Color {
+  option (motif.extension.v1.message).component = 33;
+
+  // The color value. Exactly one color space must be set.
+  oneof data {
+    option (buf.validate.oneof).required = true;
+
+    // sRGB-encoded color. See https://webstore.iec.ch/en/publication/6169.
+    Srgb srgb = 1;
+    // Linear-RGB color.
+    LinearRgb linear_rgb = 2;
+  }
+
+  // An sRGB color with integer channels.
+  message Srgb {
+    // Red channel.
+    uint32 red = 1;
+    // Green channel.
+    uint32 green = 2;
+    // Blue channel.
+    uint32 blue = 3;
+  }
+
+  // A linear-RGB color with floating-point channels.
+  message LinearRgb {
+    // Red channel.
+    float red = 1;
+    // Green channel.
+    float green = 2;
+    // Blue channel.
+    float blue = 3;
+  }
+}
+
+// The opacity (alpha) applied to an entity, from 0 (transparent) to 1 (opaque).
+message Opacity {
+  option (motif.extension.v1.message).component = 34;
+
+  // Opacity in the range [0, 1].
+  float value = 1 [(buf.validate.field).float = {
+    gte: 0
+    lte: 1
+  }];
+}
+
+// The line styling applied to an entity.
+message LineStyle {
+  option (motif.extension.v1.message).component = 57;
+
+  // On-paper line width, in millimeters.
+  float width = 1;
+
+  // Optional integer pen index (Revit-style). When set, the renderer resolves
+  // the on-paper width in mm from the project's pen-width table for the
+  // active view's scale and ignores `width`.
+  optional uint32 pen_size = 2;
+}

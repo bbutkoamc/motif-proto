@@ -1,0 +1,159 @@
+syntax = "proto3";
+
+// Renderable graphics primitives: encoded vertex/index geometry and the metadata
+// needed to interpret it. These are plain data types and are not themselves
+// components.
+package motif.data.graphics.v1;
+
+// A block of renderable geometry: an opaque byte buffer plus the metadata needed
+// to interpret its vertex and index data.
+message Geometry {
+  // How the vertices should be interpreted.
+  Topology topology = 1;
+
+  // Describes the encoding used for `data`.
+  Encoding encoding = 2;
+
+  // The number of vertices in `data`.
+  uint32 num_vertices = 3;
+
+  // Metadata describing which attributes are embedded in `data` and
+  // how that information can be extracted.
+  repeated AttributeMetadata attribute_metadata = 5;
+
+  // Metadata describing how the index information (if any) can be extracted
+  // from `data`.
+  optional IndexMetadata index_metadata = 6;
+
+  // The packed vertex (and optionally index) buffer.
+  bytes data = 7;
+}
+
+// How a geometry's vertices are assembled into primitives.
+enum Topology {
+  // Unspecified topology.
+  TOPOLOGY_UNSPECIFIED = 0;
+  // Each vertex is an independent point.
+  TOPOLOGY_POINTS = 1;
+  // Vertices are taken in pairs as independent line segments.
+  TOPOLOGY_LINES = 2;
+  // Vertices form a connected polyline.
+  TOPOLOGY_LINE_STRIP = 3;
+  // Vertices are taken in triples as independent triangles.
+  TOPOLOGY_TRIANGLES = 4;
+  // Vertices form a connected triangle strip.
+  TOPOLOGY_TRIANGLE_STRIP = 5;
+}
+
+// The encoding applied to a geometry's data buffer.
+enum Encoding {
+  // Unspecified encoding.
+  ENCODING_UNSPECIFIED = 0;
+  // Raw, unencoded data.
+  ENCODING_UNENCODED = 1;
+  // Draco-compressed data.
+  ENCODING_DRACO = 2;
+}
+
+// The scalar type of an attribute's component values.
+enum AttributeDataType {
+  // Unspecified data type.
+  ATTRIBUTE_DATA_TYPE_UNSPECIFIED = 0;
+  // Signed 8-bit integer.
+  ATTRIBUTE_DATA_TYPE_INT8 = 1;
+  // Unsigned 8-bit integer.
+  ATTRIBUTE_DATA_TYPE_UINT8 = 2;
+  // Signed 16-bit integer.
+  ATTRIBUTE_DATA_TYPE_INT16 = 3;
+  // Unsigned 16-bit integer.
+  ATTRIBUTE_DATA_TYPE_UINT16 = 4;
+  // Signed 32-bit integer.
+  ATTRIBUTE_DATA_TYPE_INT32 = 5;
+  // Unsigned 32-bit integer.
+  ATTRIBUTE_DATA_TYPE_UINT32 = 6;
+  // 32-bit floating point.
+  ATTRIBUTE_DATA_TYPE_FLOAT32 = 7;
+}
+
+// Well-known vertex attribute identifiers.
+enum AttributeId {
+  // Unspecified attribute.
+  ATTRIBUTE_ID_UNSPECIFIED = 0;
+  // Vertex position.
+  ATTRIBUTE_ID_POSITION = 1;
+  // Vertex normal.
+  ATTRIBUTE_ID_NORMAL = 2;
+  // Primary texture coordinate.
+  ATTRIBUTE_ID_UV = 3;
+  // Secondary texture coordinate.
+  ATTRIBUTE_ID_UV_1 = 4;
+  // Vertex color.
+  ATTRIBUTE_ID_COLOR = 5;
+}
+
+// Describes a single vertex attribute embedded in a geometry's data buffer.
+message AttributeMetadata {
+  // How to find the specific attribute in the byte array.
+  oneof accessor {
+    // An offset into the byte array.
+    uint32 offset = 1;
+
+    // An identifier into another metadata block, most likely embedded in the byte array itself.
+    uint32 index = 2;
+  }
+
+  // What this attribute represents.
+  oneof descriptor {
+    // Known attribute ids.
+    AttributeId id = 3;
+
+    // Unknown attribute ids.
+    string name = 4;
+  }
+
+  // 3 for positions/normals, 2 for uv, etc.
+  uint32 dimension = 5;
+
+  // The type of the values for the attribute.
+  AttributeDataType data_type = 6;
+
+  // Offset to the start of the next attribute value.
+  uint32 stride = 7;
+
+  // Indicates if the values should be normalized.
+  //     For signed integer types (INT8, INT16, INT32), values will be mapped to [-1.0, 1.0]
+  //     For unsigned integer types (UINT8, UINT16, UINT32), values will be mapped to [0.0, 1.0]
+  bool normalize = 8;
+
+  // TODO: consider supporting translation and scaling of attribute data for quantization
+  // number of values should match `dimension`
+  // e.g.
+  //    repeated float translation = 9;
+  //    repeated float scale = 10;
+}
+
+// The scalar type of index values in a geometry's data buffer.
+enum IndexDataType {
+  // Unspecified index type.
+  INDEX_DATA_TYPE_UNSPECIFIED = 0;
+  // Unsigned 16-bit indices.
+  INDEX_DATA_TYPE_UINT16 = 1;
+  // Unsigned 32-bit indices.
+  INDEX_DATA_TYPE_UINT32 = 2;
+}
+
+// Describes how index data is laid out in a geometry's data buffer.
+message IndexMetadata {
+  // How to extract the indices from the byte array. Will not be specified for those data formats
+  // which embed the index access information.
+  oneof accessor {
+    // An offset into the byte array which indicates where the indices start.
+    uint32 offset = 1;
+  }
+
+  // The data type of the indices.
+  IndexDataType data_type = 2;
+
+  // The number of indices present in the data.
+  uint32 num_indices = 3;
+}

@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+// FDE spatial components: room footprints, import metadata, and plan topology
+// (room/space boundaries and door portals).
+package motif.data.fde.v1;
+
+import "buf/validate/validate.proto";
+import "motif/extension/v1/options.proto";
+import "motif/extension/v1/reference.proto";
+
+// Authoritative 2D footprint for rooms (Revit import) and site OSM buildings.
+//
+// For site buildings, pair with `motif.data.fde.v1.SiteBuilding` on the same
+// entity. The wire format is OGC WKB `MultiPolygon` (2D, little-endian, no SRID)
+// with shared-meter XY coordinates.
+message PlanFootprint2D {
+  option (motif.extension.v1.message).component = 74;
+
+  // The encoded footprint.
+  oneof payload {
+    // OGC WKB MultiPolygon (2D, little-endian), shared-meter XY.
+    bytes wkb = 1;
+  }
+}
+
+// Metadata for a room imported from Revit.
+message ImportedRoom {
+  option (motif.extension.v1.message).component = 75;
+
+  // The Revit UniqueId of the source room.
+  optional string revit_unique_id = 1;
+  // The room number.
+  optional string number = 2;
+  // The room name.
+  optional string name = 3;
+  // The level the room belongs to.
+  motif.extension.v1.EntityReference level = 4;
+  // The room area as reported by Revit, in square meters.
+  optional double revit_area = 5;
+}
+
+// The kind of spatial element a topology row classifies.
+enum TopologyKind {
+  // Unspecified topology kind.
+  TOPOLOGY_KIND_UNSPECIFIED = 0;
+  // A room.
+  TOPOLOGY_KIND_ROOM = 1;
+  // A space.
+  TOPOLOGY_KIND_SPACE = 2;
+  // An area.
+  TOPOLOGY_KIND_AREA = 3;
+}
+
+// Classifies the element that bounds a spatial segment (wall vs. separation
+// line, etc.). Plugins set this at export from the source element's category.
+enum BoundingElementKind {
+  // Unspecified bounding-element kind.
+  BOUNDING_ELEMENT_KIND_UNSPECIFIED = 0;
+  // A physical wall.
+  BOUNDING_ELEMENT_KIND_PHYSICAL_WALL = 1;
+  // A physical column.
+  BOUNDING_ELEMENT_KIND_PHYSICAL_COLUMN = 2;
+  // A room/space separation line.
+  BOUNDING_ELEMENT_KIND_SEPARATION_LINE = 3;
+  // An area boundary line.
+  BOUNDING_ELEMENT_KIND_AREA_BOUNDARY_LINE = 4;
+}
+
+// A spatial element is bounded by a host element along one plan boundary loop
+// segment.
+//
+// The boundary curve geometry lives on the bounding element entity
+// (`motif.data.model.v1.Curve2` plus a `PlanarReference` to its level).
+message BoundedBy {
+  option (motif.extension.v1.message).component = 76;
+
+  // The bounded spatial element (room/space/area). Required.
+  motif.extension.v1.EntityReference spatial_element = 1 [(buf.validate.field).required = true];
+  // The element that bounds it. Required.
+  motif.extension.v1.EntityReference bounding_element = 2 [(buf.validate.field).required = true];
+  // An optional linked element (e.g. the wall a separation line stands in for).
+  motif.extension.v1.EntityReference linked_element = 3;
+  // The kind of spatial element bounded.
+  TopologyKind topology_kind = 4;
+  // Opaque area-scheme identifier (not an entity reference).
+  optional bytes area_scheme_id = 5;
+  // Index of the boundary loop on the spatial element.
+  uint32 loop_index = 6;
+  // Index of the segment within the loop.
+  uint32 segment_index = 7;
+  // The kind of element doing the bounding.
+  BoundingElementKind bounding_element_kind = 8;
+}
+
+// A door portal linking optional room/space endpoints through a host wall.
+//
+// The row is anchored on the door entity. An unset `from`/`to` side means the
+// opening faces the exterior or an unknown side.
+message Portal {
+  option (motif.extension.v1.message).component = 77;
+
+  // The opening (door) element. Required.
+  motif.extension.v1.EntityReference opening_element = 1 [(buf.validate.field).required = true];
+  // The spatial element on the "from" side, if any.
+  motif.extension.v1.EntityReference from_spatial_element = 2;
+  // The spatial element on the "to" side, if any.
+  motif.extension.v1.EntityReference to_spatial_element = 3;
+  // The wall hosting the opening, if any.
+  motif.extension.v1.EntityReference host_wall = 4;
+  // The kind of spatial elements linked.
+  TopologyKind topology_kind = 5;
+  // The level the portal belongs to, if any.
+  motif.extension.v1.EntityReference level = 6;
+  // Opening start position along the host wall, in meters.
+  optional double host_start_m = 7;
+  // Opening end position along the host wall, in meters.
+  optional double host_end_m = 8;
+}

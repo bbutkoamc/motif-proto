@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+// External (plugin-ingest) component types: identities and view metadata for
+// objects imported from external applications such as Revit and Rhino.
+package motif.data.external.v1;
+
+import "motif/extension/v1/options.proto";
+
+// Identifies a top-level asset imported by a plugin.
+message PluginTopLevelAsset {
+  option (motif.extension.v1.message).component = 67;
+
+  // Identifier of the source document the asset was imported from.
+  string document_id = 1;
+  // MAC address of the originating machine.
+  string mac_address = 2;
+}
+
+// Identity of an object imported from Revit.
+message RevitObjectBase {
+  option (motif.extension.v1.message).component = 68;
+
+  // The Revit ElementId of the source object.
+  int64 element_id = 1;
+  // Opaque version token for the source object.
+  bytes version = 2;
+}
+
+// Metadata for a Revit symbol (family symbol).
+message RevitSymbolMetadata {
+  option (motif.extension.v1.message).component = 69;
+
+  // Identifier of the Revit geometry symbol.
+  int64 geometry_symbol_id = 1;
+}
+
+// A Revit view detail level.
+enum RevitDetailLevel {
+  // Unspecified detail level.
+  REVIT_DETAIL_LEVEL_UNSPECIFIED = 0;
+  // Coarse detail.
+  REVIT_DETAIL_LEVEL_COARSE = 1;
+  // Medium detail.
+  REVIT_DETAIL_LEVEL_MEDIUM = 2;
+  // Fine detail.
+  REVIT_DETAIL_LEVEL_FINE = 3;
+  // Detail level explicitly undefined by the source.
+  REVIT_DETAIL_LEVEL_UNDEFINED = 4;
+}
+
+// Per-category visibility and detail-level settings for a Revit view.
+message RevitViewCategoryData {
+  option (motif.extension.v1.message).component = 70;
+
+  // Whether the category is visible in the view.
+  bool visibility = 1;
+  // Detail level override for the category.
+  RevitDetailLevel detail_level = 2;
+}
+
+// Identity of an object imported from Rhino.
+message RhinoObjectBase {
+  option (motif.extension.v1.message).component = 71;
+
+  // The Rhino object id.
+  bytes rhino_object_id = 1;
+  // Hash of the source object.
+  uint32 hash = 2;
+}
+
+// Metadata for an imported Revit view.
+message RevitViewMetadata {
+  option (motif.extension.v1.message).component = 72;
+
+  // The view's detail level, when set.
+  optional RevitDetailLevel detail_level = 1;
+  // Per-category settings, keyed by Revit category id.
+  map<int64, RevitViewCategoryData> categories = 2;
+}

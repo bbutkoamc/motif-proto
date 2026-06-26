@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+// FDE sketch datums: reference planes and structural column grids used as sketch
+// hosts.
+//
+// Component IDs here were reclaimed from previously-retired component IDs
+// (replacing the earlier provisional 9020-9023 placeholders).
+package motif.data.fde.v1;
+
+import "motif/extension/v1/options.proto";
+
+// A named reference plane used as a sketch host (any orientation).
+message ReferencePlane {
+  option (motif.extension.v1.message).component = 11;
+}
+
+// Container for a structural column grid (the persisted datum, not the display
+// grid).
+message GridSystem {
+  option (motif.extension.v1.message).component = 21;
+}
+
+// One vertical grid-line plane; its sketch host is the `CoordinateSystem3`
+// component on the same entity.
+message GridLine {
+  option (motif.extension.v1.message).component = 22;
+}
+
+// A display label for a grid line (e.g. "A", "1").
+message GridLineLabel {
+  option (motif.extension.v1.message).component = 30;
+
+  // The label text.
+  string label = 1;
+}

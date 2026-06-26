@@ -1,0 +1,179 @@
+syntax = "proto3";
+
+// View-related components and relationships: views, cameras, projection,
+// clipping, and scale.
+package motif.data.view.v1;
+
+import "buf/validate/validate.proto";
+import "motif/data/geometry/v1/geometry.proto";
+import "motif/extension/v1/options.proto";
+import "motif/extension/v1/reference.proto";
+
+// The behavioral classification of a view.
+enum ViewKind {
+  // Unspecified view kind.
+  VIEW_KIND_UNSPECIFIED = 0;
+  // A 3D view.
+  VIEW_KIND_3D = 1;
+  // A plan view.
+  VIEW_KIND_PLAN = 2;
+  // A section view.
+  VIEW_KIND_SECTION = 3;
+  // An elevation view.
+  VIEW_KIND_ELEVATION = 4;
+  // A callout view.
+  VIEW_KIND_CALLOUT = 5;
+  // A drafting view.
+  VIEW_KIND_DRAFTING = 6;
+}
+
+// Marks an entity as a view.
+message View {
+  option (motif.extension.v1.message).component = 41;
+
+  // The kind of view.
+  ViewKind kind = 1;
+}
+
+// A type definition for views. Carries the `ViewKind` and default parameter
+// values that serve as starting values when a new view is created from this type.
+message ViewType {
+  option (motif.extension.v1.message).component = 42;
+
+  // The kind of view this type produces.
+  ViewKind kind = 1;
+}
+
+// Marker component identifying an entity as a view's camera.
+//
+// A member of a view entity, carrying `Isometry` and `Projection` components.
+message Camera {
+  option (motif.extension.v1.message).component = 43;
+}
+
+// Projection parameters for a camera.
+message Projection {
+  option (motif.extension.v1.message).component = 44;
+
+  // The near clipping distance.
+  double near_clip = 1;
+  // The far clipping distance.
+  double far_clip = 2;
+
+  // The projection model and its parameters.
+  oneof projection_params {
+    // Perspective projection parameters.
+    PerspectiveParams perspective = 3;
+    // Orthographic projection parameters.
+    OrthographicParams orthographic = 4;
+  }
+
+  // Parameters for a perspective projection.
+  message PerspectiveParams {
+    // Vertical field of view, in radians.
+    double fov = 1;
+  }
+
+  // Parameters for an orthographic projection.
+  message OrthographicParams {
+    // Height of the visible area, in model units.
+    double scale = 1;
+  }
+}
+
+// Persisted lighting configuration for a camera.
+message Lighting {
+  option (motif.extension.v1.message).component = 45;
+
+  // Whether shadows are enabled.
+  bool shadows = 1;
+}
+
+// Defines the spatial clipping bounds for non-3D views.
+message ViewRange {
+  option (motif.extension.v1.message).component = 46;
+
+  // Top plane. Geometry above this is hidden.
+  LevelOffset top = 1;
+
+  // Cut plane. Geometry intersecting this plane is cut.
+  LevelOffset cut_plane = 2;
+
+  // Bottom plane. Geometry below this is hidden.
+  LevelOffset bottom = 3;
+
+  // Extends visibility beyond the bottom plane with a lighter line style.
+  LevelOffset view_depth = 4;
+}
+
+// A position relative to a level: the level entity plus a vertical offset.
+message LevelOffset {
+  // The level entity this plane is relative to. Required.
+  motif.extension.v1.EntityReference level = 1 [(buf.validate.field).required = true];
+
+  // Offset from the level's elevation, in model units.
+  double offset = 2;
+}
+
+// The drawing scale for a view. Defines the ratio between paper-space and
+// model-space: 1 paper unit = `ratio` model units.
+message ViewScale {
+  option (motif.extension.v1.message).component = 47;
+
+  // The paper-to-model ratio. Must be positive.
+  double ratio = 1 [(buf.validate.field).double.gt = 0];
+}
+
+// A 3D oriented bounding box that clips the view's visible volume.
+message SectionBox {
+  option (motif.extension.v1.message).component = 48;
+
+  // The box center, in model coordinates.
+  motif.data.geometry.v1.Vector3 center = 1;
+  // Half-extents along the box's local axes.
+  motif.data.geometry.v1.Vector3 half_extents = 2;
+  // Orientation of the box. If absent, the box is axis-aligned.
+  motif.data.geometry.v1.AxisAngle rotation = 3;
+}
+
+// A 2D rectangle that clips the projected view to a bounded region.
+message CropRegion {
+  option (motif.extension.v1.message).component = 49;
+
+  // Center of the crop region in the view's projected 2D space, in model units.
+  motif.data.geometry.v1.Point2 center = 1;
+  // Width and height of the crop rectangle, in model units.
+  motif.data.geometry.v1.Size2 size = 2;
+  // Optional rotation of the crop rectangle, in radians. Phase 0 ignores this.
+  optional double rotation = 3;
+}
+
+// The result of projecting a source entity's geometry through a view's
+// hidden-line-removal pipeline. Lives on per-(source, view) derived entities
+// created by change propagation.
+//
+// Coordinates inside the payload are model-space XY with the source entity's
+// transform baked in by the projection pipeline.
+message ProjectedGeometry {
+  option (motif.extension.v1.message).component = 64;
+
+  // The encoded 2D geometry. A `oneof` so the encoding is part of the schema
+  // (rather than sniffed from a magic byte) and so additional encodings can
+  // be added later without breaking existing readers.
+  oneof payload {
+    // OGC Well-Known Binary, MultiPolygon (geometry type 6), 2D, no SRID.
+    // See https://libgeos.org/specifications/wkb/.
+    bytes wkb = 1;
+  }
+
+  // TODO: add styling fields here as the floor-plan UX evolves (stroke
+  // colors / weights, line patterns, hatching, etc.).
+}
+
+// The home (default) view of a model.
+message HomeView {
+  option (motif.extension.v1.message).component = 60;
+
+  // The view entity that is the model's home view. Required.
+  motif.extension.v1.EntityReference view = 1 [(buf.validate.field).required = true];
+}

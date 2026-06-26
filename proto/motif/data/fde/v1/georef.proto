@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+// FDE georeferencing components: project geolocation and model placement within
+// shared site coordinates.
+package motif.data.fde.v1;
+
+import "buf/validate/validate.proto";
+import "motif/data/geometry/v1/geometry.proto";
+import "motif/extension/v1/options.proto";
+
+// The geographic location of a project.
+message ProjectGeolocation {
+  option (motif.extension.v1.message).component = 78;
+
+  // Latitude in degrees, in the range [-90, 90].
+  double latitude_degrees = 1 [(buf.validate.field).double = {
+    gte: -90
+    lte: 90
+  }];
+  // Longitude in degrees, in the range [-180, 180].
+  double longitude_degrees = 2 [(buf.validate.field).double = {
+    gte: -180
+    lte: 180
+  }];
+  // Elevation above sea level, in meters.
+  double elevation_meters = 3;
+}
+
+// The origin and orientation of the project's shared coordinate system, used to
+// convert between geographic and shared-meter coordinates.
+message SharedCoordinateOrigin {
+  option (motif.extension.v1.message).component = 79;
+
+  // East offset of the shared origin, in meters.
+  double origin_east_meters = 1;
+  // North offset of the shared origin, in meters.
+  double origin_north_meters = 2;
+  // Optional EPSG code identifying the projected coordinate reference system.
+  optional string epsg = 3;
+  // Rotation from the shared grid's north to true north, in degrees.
+  double angle_to_true_north_degrees = 4;
+}
+
+// The placement of a model within the project's shared coordinate system.
+message ModelPlacement {
+  option (motif.extension.v1.message).component = 80;
+
+  // Translation of the model origin, in shared meters.
+  motif.data.geometry.v1.Vector3 translation = 1;
+  // Rotation of the model about its origin.
+  motif.data.geometry.v1.AxisAngle rotation = 2;
+}
+
+// The orientation of a model relative to true north.
+message ModelOrientation {
+  option (motif.extension.v1.message).component = 81;
+
+  // Rotation from the model's north to true north, in degrees.
+  double angle_to_true_north_degrees = 1;
+}
