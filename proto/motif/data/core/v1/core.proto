@@ -202,6 +202,27 @@ message RenderedRepresentation {
   }
 }
 
+// The representation of an asset that is stored for reference or download but
+// never rendered into the scene. Spreadsheets, documents, and other opaque
+// blobs live here; anything the viewer knows how to draw belongs on
+// `RenderedRepresentation` instead.
+//
+// NOTE: in the future the backend will provide a signed URL for the
+// representation. For now, `id` is used to fetch the representation URL from the
+// representation service.
+message NonRenderedRepresentation {
+  option (motif.extension.v1.message).component = 129;
+
+  // Identifier used to fetch the representation from the representation service.
+  bytes id = 1;
+  // Source IANA MIME type (for example
+  // `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`,
+  // `application/pdf`, or `application/octet-stream`). Free-form on purpose:
+  // this component exists to sidestep enumerating the world's non-renderable
+  // formats.
+  string mime_type = 2;
+}
+
 // Marker component indicating the entity represents some form of asset.
 //
 // This needs to be detailed further and potentially should specify some form of
