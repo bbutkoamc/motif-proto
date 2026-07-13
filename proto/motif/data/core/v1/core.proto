@@ -199,6 +199,8 @@ message RenderedRepresentation {
     MIME_TYPE_OBJ = 5;
     // model/gltf-binary.
     MIME_TYPE_GLB = 6;
+    // application/octet-stream — arbitrary non-visual data asset (spreadsheet, doc, etc.).
+    MIME_TYPE_OTHER = 7;
   }
 }
 
