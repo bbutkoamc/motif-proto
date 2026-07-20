@@ -937,3 +937,39 @@ message SourceAsset {
   // version rather than the materialized entity's own model.
   motif.extension.v1.ModelReference model = 2;
 }
+
+// A behavior which keeps a Point3 on a host Curve2.
+//
+// Regeneration reads the host curve and the stored normalized CurveHostParam,
+// evaluates the curve at that parameter, and writes plane-local Point3
+// coordinates (z = 0) to the output.
+message CurveHostedPointBehavior {
+  option (motif.extension.v1.message).component = 152;
+
+  // The host curve geometry.
+  motif.extension.v1.DataReference host_curve = 1 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.model.v1.Curve2"
+    }
+  ];
+
+  // The normalized host parameter on the hosted point entity.
+  motif.extension.v1.DataReference host_param = 2 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.model.v1.CurveHostParam"
+    }
+  ];
+
+  // The entity the computed plane-local Point3 is written to.
+  motif.extension.v1.DataReference output = 3 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.model.v1.Point3"
+    }
+  ];
+}

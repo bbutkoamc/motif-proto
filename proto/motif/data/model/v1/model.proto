@@ -51,6 +51,22 @@ message Point3 {
   motif.data.geometry.v1.Point3 point = 1;
 }
 
+// Host binding parameter for a Point3 on a Curve2.
+//
+// Hosting is a Requires relationship to the host curve entity plus this
+// component. `t` is a normalized domain fraction in [0, 1] (0 = domain low,
+// 1 = domain high). Storing a normalized fraction keeps relative position when
+// the host curve's domain length changes (e.g. stretching a Line2).
+message CurveHostParam {
+  option (motif.extension.v1.message).component = 151;
+
+  // Normalized curve parameter in [0, 1].
+  double t = 1 [(buf.validate.field).double = {
+    gte: 0
+    lte: 1
+  }];
+}
+
 // An x/y/z offset from some other three-dimensional location.
 message XyzOffset {
   option (motif.extension.v1.message).component = 12;
