@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fixture://BHoM_JSONSchema/BHoM/FragmentSet.json",
+  "oneOf": [
+    {
+      "type": ["array", "null"],
+      "items": {
+        "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/BHoM/IFragment.json"
+      }
+    },
+    {
+      "type": ["object", "null"]
+    }
+  ]
+}

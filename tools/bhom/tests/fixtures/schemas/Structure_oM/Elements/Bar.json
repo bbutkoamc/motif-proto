@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fixture://BHoM_JSONSchema/Structure_oM/Elements/Bar.json",
+  "title": "Bar",
+  "type": ["object", "null"],
+  "properties": {
+    "Start": {
+      "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Structure_oM/Elements/Node.json"
+    },
+    "End": {
+      "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Structure_oM/Elements/Node.json"
+    },
+    "SectionProperty": {
+      "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Structure_oM/SectionProperties/ISectionProperty.json"
+    },
+    "OrientationAngle": {
+      "type": "number"
+    },
+    "FEAType": {
+      "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Structure_oM/Elements/BarFEAType.json"
+    },
+    "BHoM_Guid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "Name": {
+      "type": ["string", "null"]
+    },
+    "Fragments": {
+      "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/BHoM/FragmentSet.json"
+    },
+    "Tags": {
+      "type": ["array", "null"],
+      "items": {
+        "type": ["string", "null"]
+      },
+      "uniqueItems": true
+    },
+    "CustomData": {
+      "type": ["object", "null"]
+    },
+    "_t": {
+      "type": "string",
+      "const": "BH.oM.Structure.Elements.Bar"
+    },
+    "_bhomVersion": {
+      "type": ["string", "null"]
+    }
+  }
+}

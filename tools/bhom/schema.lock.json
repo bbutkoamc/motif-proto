@@ -1,0 +1,123 @@
+{
+  "source": {
+    "repository_url": "https://github.com/BHoM/BHoM_JSONSchema",
+    "commit": "9a3bde86d287cb9e07f40b5538a059cc546c59dc"
+  },
+  "generator": {
+    "name": "motif-bhom-proto-generator",
+    "version": "0.1.0"
+  },
+  "schemas": [
+    {
+      "path": "Structure_oM/Elements/Bar.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Structure_oM/Elements/Bar.json",
+      "sha256": "8ec985d2fa2c15c2a5b776316756b1e3365217d4f6dfa84d3b36a24a65421c57"
+    },
+    {
+      "path": "Structure_oM/Elements/Node.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Structure_oM/Elements/Node.json",
+      "sha256": "263253336e76eed6617b30fd2bdf5b524fccf8f6b8956816b21ef40171a5ecbb"
+    },
+    {
+      "path": "Geometry_oM/Point.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/Point.json",
+      "sha256": "36f97ba0cc413feb9470f74be5037f9ea20f3a7446b5ad842111543e0234c3cc"
+    },
+    {
+      "path": "Structure_oM/Elements/BarFEAType.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Structure_oM/Elements/BarFEAType.json",
+      "sha256": "916cf85e5b8b2d91d2ea5db94cdef0175f68832841e6e0363ed6656666693330"
+    },
+    {
+      "path": "BHoM/FragmentSet.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/BHoM/FragmentSet.json",
+      "sha256": "b6bfeb48f54967490482dec68ad08a8ab905ca04aa1ea1f07d3046f9a1575151"
+    },
+    {
+      "path": "Physical_oM/Elements/Floor.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Physical_oM/Elements/Floor.json",
+      "sha256": "346d1b6f39deec9ac094d686fe02c91e72925b67c32e1efd3c8424b5edfd58dc"
+    },
+    {
+      "path": "Geometry_oM/ISurface.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/ISurface.json",
+      "sha256": "a2c1ec37323cf01591b3dff6157d497f3fe315cda62f4ef3388c7d9a3cf84f08"
+    },
+    {
+      "path": "Geometry_oM/PlanarSurface.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/PlanarSurface.json",
+      "sha256": "eb9e49f6ac0c37205b551b7d0552f51f6285f00222f4f5a85f64b7121ba1b340"
+    },
+    {
+      "path": "Geometry_oM/ICurve.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/ICurve.json",
+      "sha256": "01779e4b4c5c315b883d7fc9ce1dbcf4d56e62dd402ecac27490e936769d822b"
+    },
+    {
+      "path": "Geometry_oM/Polygon.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/Polygon.json",
+      "sha256": "851a0496d1e71aa12e250c2ebf1650227d8bf8956f53b8e5f30a0ee6796183da"
+    },
+    {
+      "path": "Geometry_oM/Polyline.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/Polyline.json",
+      "sha256": "8b4726c36c4491e6ac8500ff9c6b092e740998dd08f8bba8e374af456d5f132a"
+    },
+    {
+      "path": "Spatial_oM/ShapeProfiles/AngleProfile.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Spatial_oM/ShapeProfiles/AngleProfile.json",
+      "sha256": "2aeba64584157143155456dcf02c6cf68dabbfa17a2149cd66aef9c54b269561"
+    },
+    {
+      "path": "Spatial_oM/ShapeProfiles/BoxProfile.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Spatial_oM/ShapeProfiles/BoxProfile.json",
+      "sha256": "480c83a2ea0e46d550f675b8e8a0e74becffe22e2ab2be9d662d5699373228d7"
+    },
+    {
+      "path": "Spatial_oM/ShapeProfiles/CircleProfile.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Spatial_oM/ShapeProfiles/CircleProfile.json",
+      "sha256": "24efc9959775cffd89add990e49094d1ede7508fd6faf91bef65daf2a23e475d"
+    },
+    {
+      "path": "Spatial_oM/ShapeProfiles/RectangleProfile.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Spatial_oM/ShapeProfiles/RectangleProfile.json",
+      "sha256": "d8c118e35ab273c9879e314d695e1db90e8244b19c4d46f0c1d4cd8db01d4909"
+    },
+    {
+      "path": "Spatial_oM/ShapeProfiles/ShapeType.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Spatial_oM/ShapeProfiles/ShapeType.json",
+      "sha256": "8e156b8798e07225b3630d6d5c68ad62a81faf3420f42729b048b25c73ac67d7"
+    },
+    {
+      "path": "Spatial_oM/ShapeProfiles/TubeProfile.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Spatial_oM/ShapeProfiles/TubeProfile.json",
+      "sha256": "1b8bd4da5583aa6672c5fd678a085c8e2b0355e364dd6ebdd43c69696e1be058"
+    }
+  ],
+  "outputs": [
+    {
+      "entry_schema_path": "Structure_oM/Elements/Bar.json",
+      "mode": "dry-run",
+      "path": "thirdparty/bhom/generated/spatial/v1/spatial.proto",
+      "content_sha256": "e11ae3c40980499ea5c7b29c106c4e33fbb4f9eece72b2f504f7836edbcd0532"
+    },
+    {
+      "entry_schema_path": "Structure_oM/Elements/Bar.json",
+      "mode": "dry-run",
+      "path": "thirdparty/bhom/generated/structure/v1/structure.proto",
+      "content_sha256": "54290f50be31631fef130b12a16d6a89d610644b2b273205ded7089cb9114604"
+    },
+    {
+      "entry_schema_path": "Physical_oM/Elements/Floor.json",
+      "mode": "dry-run",
+      "path": "thirdparty/bhom/generated/geometry/v1/geometry.proto",
+      "content_sha256": "bfd4c4f8e196eeee7bdd8fe00255f9cd397cfa9c35242516867f605a42528e31"
+    },
+    {
+      "entry_schema_path": "Physical_oM/Elements/Floor.json",
+      "mode": "dry-run",
+      "path": "thirdparty/bhom/generated/physical/v1/physical.proto",
+      "content_sha256": "ebfc11c4d25cc5540c8f1a1769549c99b1cfd3431f7a300ceb59557261e9fba7"
+    }
+  ]
+}

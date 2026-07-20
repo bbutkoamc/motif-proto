@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fixture://BHoM_JSONSchema/Geometry_oM/Polygon.json",
+  "title": "Polygon",
+  "type": ["object", "null"],
+  "properties": {
+    "Vertices": {
+      "type": ["object", "null"],
+      "properties": {
+        "_v": {
+          "type": ["array", "null"],
+          "items": {
+            "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/Point.json"
+          }
+        }
+      }
+    },
+    "_t": {
+      "type": "string",
+      "const": "BH.oM.Geometry.Polygon"
+    },
+    "_bhomVersion": {
+      "type": ["string", "null"]
+    }
+  },
+  "required": ["Vertices"]
+}

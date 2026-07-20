@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fixture://BHoM_JSONSchema/Geometry_oM/ICurve.json",
+  "required": ["_t"],
+  "properties": {
+    "_t": {
+      "enum": [
+        "BH.oM.Geometry.Arc",
+        "BH.oM.Geometry.BoundaryCurve",
+        "BH.oM.Geometry.Circle",
+        "BH.oM.Geometry.Ellipse",
+        "BH.oM.Geometry.Line",
+        "BH.oM.Geometry.NurbsCurve",
+        "BH.oM.Geometry.PolyCurve",
+        "BH.oM.Geometry.Polygon",
+        "BH.oM.Geometry.Polyline"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "then": {
+        "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/Arc.json"
+      }
+    },
+    {
+      "then": {
+        "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/BoundaryCurve.json"
+      }
+    },
+    {
+      "then": {
+        "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/Circle.json"
+      }
+    },
+    {
+      "then": {
+        "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/Ellipse.json"
+      }
+    },
+    {
+      "then": {
+        "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/Line.json"
+      }
+    },
+    {
+      "then": {
+        "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/NurbsCurve.json"
+      }
+    },
+    {
+      "then": {
+        "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/PolyCurve.json"
+      }
+    },
+    {
+      "then": {
+        "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/Polygon.json"
+      }
+    },
+    {
+      "then": {
+        "$ref": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Geometry_oM/Polyline.json"
+      }
+    }
+  ]
+}

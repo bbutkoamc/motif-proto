@@ -1,0 +1,76 @@
+{
+  "generator": {
+    "name": "motif-bhom-proto-generator",
+    "version": "0.1.0"
+  },
+  "outputs": [
+    {
+      "content_sha256": "bfd4c4f8e196eeee7bdd8fe00255f9cd397cfa9c35242516867f605a42528e31",
+      "path": "thirdparty/bhom/generated/geometry/v1/geometry.proto"
+    },
+    {
+      "content_sha256": "ebfc11c4d25cc5540c8f1a1769549c99b1cfd3431f7a300ceb59557261e9fba7",
+      "path": "thirdparty/bhom/generated/physical/v1/physical.proto"
+    },
+    {
+      "content_sha256": "e11ae3c40980499ea5c7b29c106c4e33fbb4f9eece72b2f504f7836edbcd0532",
+      "path": "thirdparty/bhom/generated/spatial/v1/spatial.proto"
+    },
+    {
+      "content_sha256": "07d931645ad8c3c07a291843fcf937b35249b81a42ba08c32f26e8b53f500107",
+      "path": "thirdparty/bhom/generated/structure/v1/structure.proto"
+    }
+  ],
+  "roots": [
+    {
+      "entry_schema_path": "Physical_oM/Elements/Floor.json",
+      "unsupported": [
+        "Floor FragmentSet expansion: Fragments are not expanded by the source-schema generator in this slice.",
+        "Floor construction/material polymorphism: Construction and material expansion are deferred and remain source-preserved through BHoMSource.",
+        "Floor curved/NURBS boundaries: Only BH.oM.Geometry.Polygon and closed BH.oM.Geometry.Polyline external boundaries are editable; Arc, Circle, Ellipse, Line, NurbsCurve, PolyCurve, and BoundaryCurve remain source-preserved.",
+        "Floor internal boundaries: PlanarSurface.InternalBoundaries are deferred and remain source-preserved through BHoMSource.",
+        "Floor non-planar ISurface: Only BH.oM.Geometry.PlanarSurface is generated for Floor.Location; Extrusion, Loft, NurbsSurface, Pipe, and PolySurface are unsupported in this slice.",
+        "Floor openings: Openings are deferred and remain source-preserved through BHoMSource.",
+        "Geometry_oM/PlanarSurface.json: PlanarSurface.internal_boundaries: PlanarSurface internal boundaries are deferred and preserved through BHoMSource/source JSON.",
+        "Physical_oM/Elements/Floor.json: Floor.construction: Floor construction/material polymorphism is deferred and preserved through BHoMSource/source JSON.",
+        "Physical_oM/Elements/Floor.json: Floor.fragments: FragmentSet expansion is deferred and preserved through BHoMSource/source JSON.",
+        "Physical_oM/Elements/Floor.json: Floor.offset: Floor offset editing is deferred and preserved through BHoMSource/source JSON.",
+        "Physical_oM/Elements/Floor.json: Floor.openings: Floor openings are deferred and preserved through BHoMSource/source JSON."
+      ]
+    },
+    {
+      "entry_schema_path": "Structure_oM/Elements/Bar.json",
+      "unsupported": [
+        "Bar Angle root/toe radii projection: AngleProfile source DTO retains RootRadius and ToeRadius, but radius behavior remains a Raven native-projection decision.",
+        "Bar Box hollow/radii projection: BoxProfile source DTO retains Thickness, OuterRadius, and InnerRadius, but hollow-section and radius behavior remain a Raven native-projection decision.",
+        "Bar raw profile Edges: Profile Edges remain repeated raw JSON values in generated DTOs and source payload; Curve2 projection is deferred.",
+        "Bar unsupported profile types: Only RectangleProfile, CircleProfile, TubeProfile, BoxProfile, and AngleProfile are generated in this batch; Channel, Fabricated*, FreeForm, Generalised*, ISection, Kite, Tapered*, TSection, VoidedISection, and ZSection remain source-preserved.",
+        "Spatial_oM/ShapeProfiles/AngleProfile.json -> BHoM/FragmentSet.json: ref outside first-slice supported schema closure",
+        "Spatial_oM/ShapeProfiles/AngleProfile.json: AngleProfile.edges: Raw BHoM profile Edges are source-preserved; Raven's native Curve2 projection is not inferred by this generator.",
+        "Spatial_oM/ShapeProfiles/AngleProfile.json: AngleProfile.fragments: Unsupported BHoM ref BHoM/FragmentSet.json; preserved as JSON value.",
+        "Spatial_oM/ShapeProfiles/BoxProfile.json -> BHoM/FragmentSet.json: ref outside first-slice supported schema closure",
+        "Spatial_oM/ShapeProfiles/BoxProfile.json: BoxProfile.edges: Raw BHoM profile Edges are source-preserved; Raven's native Curve2 projection is not inferred by this generator.",
+        "Spatial_oM/ShapeProfiles/BoxProfile.json: BoxProfile.fragments: Unsupported BHoM ref BHoM/FragmentSet.json; preserved as JSON value.",
+        "Spatial_oM/ShapeProfiles/CircleProfile.json -> BHoM/FragmentSet.json: ref outside first-slice supported schema closure",
+        "Spatial_oM/ShapeProfiles/CircleProfile.json: CircleProfile.edges: Raw BHoM profile Edges are source-preserved; Raven's native Curve2 projection is not inferred by this generator.",
+        "Spatial_oM/ShapeProfiles/CircleProfile.json: CircleProfile.fragments: Unsupported BHoM ref BHoM/FragmentSet.json; preserved as JSON value.",
+        "Spatial_oM/ShapeProfiles/RectangleProfile.json -> BHoM/FragmentSet.json: ref outside first-slice supported schema closure",
+        "Spatial_oM/ShapeProfiles/RectangleProfile.json: RectangleProfile.edges: Raw BHoM profile Edges are source-preserved; Raven's native Curve2 projection is not inferred by this generator.",
+        "Spatial_oM/ShapeProfiles/RectangleProfile.json: RectangleProfile.fragments: Unsupported BHoM ref BHoM/FragmentSet.json; preserved as JSON value.",
+        "Spatial_oM/ShapeProfiles/TubeProfile.json -> BHoM/FragmentSet.json: ref outside first-slice supported schema closure",
+        "Spatial_oM/ShapeProfiles/TubeProfile.json: TubeProfile.edges: Raw BHoM profile Edges are source-preserved; Raven's native Curve2 projection is not inferred by this generator.",
+        "Spatial_oM/ShapeProfiles/TubeProfile.json: TubeProfile.fragments: Unsupported BHoM ref BHoM/FragmentSet.json; preserved as JSON value.",
+        "Structure_oM/Elements/Bar.json -> BHoM/FragmentSet.json: ref outside first-slice supported schema closure",
+        "Structure_oM/Elements/Bar.json -> Structure_oM/SectionProperties/ISectionProperty.json: ref outside first-slice supported schema closure",
+        "Structure_oM/Elements/Bar.json: Bar.fragments: Unsupported BHoM ref BHoM/FragmentSet.json; preserved as JSON value.",
+        "Structure_oM/Elements/Bar.json: Bar.section_property: Unsupported BHoM ref Structure_oM/SectionProperties/ISectionProperty.json; preserved as JSON value.",
+        "Structure_oM/Elements/Node.json -> Structure_oM/Constraints/Constraint6DOF.json: ref outside first-slice supported schema closure",
+        "Structure_oM/Elements/Node.json: Node.support: Unsupported BHoM ref Structure_oM/Constraints/Constraint6DOF.json; preserved as JSON value."
+      ]
+    }
+  ],
+  "source": {
+    "commit": "fixture-commit",
+    "repository_url": "https://github.com/BHoM/BHoM_JSONSchema"
+  }
+}

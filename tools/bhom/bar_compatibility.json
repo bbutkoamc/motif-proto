@@ -1,0 +1,188 @@
+{
+  "version": 1,
+  "decision": {
+    "ownership_model": "generated_source_namespace",
+    "selected_option": "B",
+    "summary": "Generated BHoM source-fidelity types live in thirdparty.bhom.generated.<domain>.v1. Existing thirdparty.bhom.data.structure.v1.Bar remains the native editable projection component.",
+    "rationale": [
+      "The locked generated Bar collides with the handwritten thirdparty.bhom.data.structure.v1.Bar if emitted into thirdparty.bhom.data.structure.v1.",
+      "The handwritten Bar is a flattened Motif/Raven projection and is not wire-compatible with the full BHoM JSON Schema shape.",
+      "Native Motif behavior and BHoM round-trip fidelity have different ownership and migration needs."
+    ]
+  },
+  "existing_definitions": {
+    "native_projection_bar": {
+      "proto_type": "thirdparty.bhom.data.structure.v1.Bar",
+      "file": "proto/thirdparty/bhom/structure/v1/structure.proto",
+      "component_id": 137,
+      "owner": "handwritten_native_projection",
+      "fields": [
+        {
+          "number": 1,
+          "name": "start_point",
+          "type": "motif.data.geometry.v1.Point3"
+        },
+        {
+          "number": 2,
+          "name": "end_point",
+          "type": "motif.data.geometry.v1.Point3"
+        },
+        {
+          "number": 3,
+          "name": "orientation_angle",
+          "type": "double"
+        },
+        {
+          "number": 4,
+          "name": "profile",
+          "type": "thirdparty.bhom.data.physical.v1.Profile"
+        }
+      ]
+    },
+    "bhom_base": {
+      "proto_type": "thirdparty.bhom.data.base.v1.BHoMBase",
+      "file": "proto/thirdparty/bhom/base/v1/base.proto",
+      "component_id": 133
+    },
+    "bhom_source": {
+      "status": "formal_shared_proto_home",
+      "proto_type": "thirdparty.bhom.data.base.v1.BHoMSource",
+      "file": "proto/thirdparty/bhom/base/v1/base.proto",
+      "component_id": 151,
+      "owner": "handwritten_shared_provenance",
+      "raven_instruction": "Replace Raven-local pilot definitions with thirdparty.bhom.data.base.v1.BHoMSource once this proto is consumed. Keep it separate from generated thirdparty.bhom.generated.* source-fidelity types and native projection components.",
+      "fields": [
+        {
+          "number": 1,
+          "name": "bhom_guid",
+          "source_json_field": "BHoM_Guid",
+          "type": "string"
+        },
+        {
+          "number": 2,
+          "name": "bhom_type",
+          "source_json_field": "_t",
+          "type": "string"
+        },
+        {
+          "number": 3,
+          "name": "bhom_version",
+          "source_json_field": "_bhomVersion",
+          "type": "string"
+        },
+        {
+          "number": 4,
+          "name": "source_payload_json",
+          "type": "string"
+        },
+        {
+          "number": 5,
+          "name": "payload_format",
+          "type": "string"
+        },
+        {
+          "number": 6,
+          "name": "payload_format_version",
+          "type": "string"
+        },
+        {
+          "number": 7,
+          "name": "payload_sha256",
+          "type": "bytes"
+        }
+      ]
+    }
+  },
+  "generated_source_type": {
+    "proto_type": "thirdparty.bhom.generated.structure.v1.Bar",
+    "output_path": "thirdparty/bhom/generated/structure/v1/structure.proto",
+    "component_id": null,
+    "owner": "deterministic_generator",
+    "source_schema": {
+      "repository_url": "https://github.com/BHoM/BHoM_JSONSchema",
+      "commit": "9a3bde86d287cb9e07f40b5538a059cc546c59dc",
+      "path": "Structure_oM/Elements/Bar.json",
+      "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Structure_oM/Elements/Bar.json"
+    },
+    "output_sha256": "bba73ae86ccf400cd94c25d86366d50b8250637679273563625c20801ceedd90"
+  },
+  "field_comparison": {
+    "identical_fields": [],
+    "semantic_overlaps": [
+      {
+        "native_field": "start_point = 1 motif.data.geometry.v1.Point3",
+        "generated_field": "start = 1 thirdparty.bhom.generated.structure.v1.Node",
+        "notes": "Native Bar flattens Start.Position and drops Node metadata."
+      },
+      {
+        "native_field": "end_point = 2 motif.data.geometry.v1.Point3",
+        "generated_field": "end = 2 thirdparty.bhom.generated.structure.v1.Node",
+        "notes": "Native Bar flattens End.Position and drops Node metadata."
+      },
+      {
+        "native_field": "orientation_angle = 3 double",
+        "generated_field": "orientation_angle = 4 double",
+        "notes": "Same semantic scalar but incompatible field number."
+      }
+    ],
+    "missing_in_native_projection": [
+      "Start.Node payload beyond Position",
+      "End.Node payload beyond Position",
+      "SectionProperty",
+      "Release",
+      "FEAType",
+      "Support",
+      "Offset",
+      "BHoM_Guid",
+      "Name",
+      "Fragments",
+      "Tags",
+      "CustomData",
+      "_t",
+      "_bhomVersion"
+    ],
+    "incompatible_fields": [
+      {
+        "field_number": 1,
+        "native": "start_point motif.data.geometry.v1.Point3",
+        "generated": "start thirdparty.bhom.generated.structure.v1.Node"
+      },
+      {
+        "field_number": 2,
+        "native": "end_point motif.data.geometry.v1.Point3",
+        "generated": "end thirdparty.bhom.generated.structure.v1.Node"
+      },
+      {
+        "field_number": 3,
+        "native": "orientation_angle double",
+        "generated": "section_property google.protobuf.Value"
+      },
+      {
+        "field_number": 4,
+        "native": "profile thirdparty.bhom.data.physical.v1.Profile",
+        "generated": "orientation_angle double"
+      }
+    ]
+  },
+  "collisions_and_registration": {
+    "package_message_collision_if_option_a": "thirdparty.bhom.data.structure.v1.Bar",
+    "selected_generated_package": "thirdparty.bhom.generated.structure.v1",
+    "selected_generated_message": "Bar",
+    "buf_changes_required_now": "none",
+    "component_id_changes_required_now": "none",
+    "required_imports_for_generated_output": [
+      "google/protobuf/struct.proto",
+      "motif/data/geometry/v1/geometry.proto"
+    ]
+  },
+  "raven_next_integration_instructions": [
+    "Continue persisting AnalyticalBar native behavior as thirdparty.bhom.data.structure.v1.Bar with component ID 137.",
+    "Attach thirdparty.bhom.data.base.v1.BHoMSource with component ID 151 to imported Bar entities.",
+    "For round-trip export, start from BHoMSource.source_payload_json and overwrite only Start.Position, End.Position, and OrientationAngle from thirdparty.bhom.data.structure.v1.Bar.",
+    "Preserve unknown/unmapped fields, BHoM_Guid, _t, and _bhomVersion from BHoMSource/source_payload_json.",
+    "Motif-authored bars without BHoMSource keep the existing native export path.",
+    "When full source-fidelity BHoM payloads are needed, store or reference thirdparty.bhom.generated.structure.v1.Bar, not thirdparty.bhom.data.structure.v1.Bar.",
+    "Do not register generated thirdparty.bhom.generated.* messages as Motif components until an explicit component-ID allocation and ECS ownership decision is made.",
+    "Projection between thirdparty.bhom.generated.structure.v1.Bar and thirdparty.bhom.data.structure.v1.Bar must be manually authored; the generator must not infer ECS semantics."
+  ]
+}

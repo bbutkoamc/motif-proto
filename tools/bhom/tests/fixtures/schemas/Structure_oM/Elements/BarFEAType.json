@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fixture://BHoM_JSONSchema/Structure_oM/Elements/BarFEAType.json",
+  "anyOf": [
+    {
+      "type": "string",
+      "enum": [
+        "Flexural",
+        "Axial",
+        "CompressionOnly",
+        "TensionOnly"
+      ]
+    }
+  ]
+}

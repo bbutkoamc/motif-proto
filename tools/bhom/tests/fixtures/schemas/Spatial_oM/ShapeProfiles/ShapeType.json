@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fixture://BHoM_JSONSchema/Spatial_oM/ShapeProfiles/ShapeType.json",
+  "anyOf": [
+    {
+      "type": "string",
+      "enum": ["Rectangle", "Box", "Angle", "ISection", "Tee", "Channel", "Tube", "Circle", "Zed", "FreeForm", "DoubleAngle", "DoubleISection", "DoubleChannel", "Cable"]
+    }
+  ]
+}

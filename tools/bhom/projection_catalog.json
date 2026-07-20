@@ -1,0 +1,236 @@
+{
+  "version": 1,
+  "ownership_model": {
+    "decision": "generated_source_namespace",
+    "generated_package_prefix": "thirdparty.bhom.generated",
+    "generated_output_root": "thirdparty/bhom/generated",
+    "native_projection_package": "thirdparty.bhom.data",
+    "source_payload_component": "thirdparty.bhom.data.base.v1.BHoMSource",
+    "source_payload_component_id": 151,
+    "rationale": "Existing thirdparty.bhom.data.structure.v1.Bar is Raven's native editable projection component. thirdparty.bhom.data.base.v1.BHoMSource is the shared handwritten provenance/source payload. Generated source-fidelity BHoM schema types must not collide with either or imply Motif ECS semantics."
+  },
+  "supported_schema_paths": [
+    "Structure_oM/Elements/Bar.json",
+    "Structure_oM/Elements/Node.json",
+    "Structure_oM/Elements/BarFEAType.json",
+    "Physical_oM/Elements/Floor.json",
+    "Geometry_oM/PlanarSurface.json",
+    "Geometry_oM/Polygon.json",
+    "Geometry_oM/Polyline.json",
+    "Geometry_oM/Point.json",
+    "Spatial_oM/ShapeProfiles/AngleProfile.json",
+    "Spatial_oM/ShapeProfiles/BoxProfile.json",
+    "Spatial_oM/ShapeProfiles/CircleProfile.json",
+    "Spatial_oM/ShapeProfiles/RectangleProfile.json",
+    "Spatial_oM/ShapeProfiles/ShapeType.json",
+    "Spatial_oM/ShapeProfiles/TubeProfile.json"
+  ],
+  "root_supported_schema_paths": {
+    "Structure_oM/Elements/Bar.json": [
+      "Spatial_oM/ShapeProfiles/AngleProfile.json",
+      "Spatial_oM/ShapeProfiles/BoxProfile.json",
+      "Spatial_oM/ShapeProfiles/CircleProfile.json",
+      "Spatial_oM/ShapeProfiles/RectangleProfile.json",
+      "Spatial_oM/ShapeProfiles/TubeProfile.json"
+    ]
+  },
+  "interface_schema_paths": [
+    "Geometry_oM/ISurface.json",
+    "Geometry_oM/ICurve.json"
+  ],
+  "native_type_mappings": {
+    "Geometry_oM/Point.json": {
+      "bhom_type": "BH.oM.Geometry.Point",
+      "proto_type": "motif.data.geometry.v1.Point3",
+      "import": "motif/data/geometry/v1/geometry.proto",
+      "reason": "Motif geometry remains canonical for 3D points."
+    }
+  },
+  "field_projection_overrides": {
+    "Physical_oM/Elements/Floor.json.Location": {
+      "kind": "message_ref",
+      "ref": "Geometry_oM/PlanarSurface.json",
+      "reason": "Slice one supports only Floor outer-boundary geometry through PlanarSurface."
+    },
+    "Physical_oM/Elements/Floor.json.Construction": {
+      "kind": "preserved_json",
+      "reason": "Floor construction/material polymorphism is deferred and preserved through BHoMSource/source JSON."
+    },
+    "Physical_oM/Elements/Floor.json.Openings": {
+      "kind": "preserved_json",
+      "repeated": true,
+      "reason": "Floor openings are deferred and preserved through BHoMSource/source JSON."
+    },
+    "Physical_oM/Elements/Floor.json.Offset": {
+      "kind": "preserved_json",
+      "reason": "Floor offset editing is deferred and preserved through BHoMSource/source JSON."
+    },
+    "Physical_oM/Elements/Floor.json.Fragments": {
+      "kind": "preserved_json",
+      "reason": "FragmentSet expansion is deferred and preserved through BHoMSource/source JSON."
+    },
+    "Geometry_oM/PlanarSurface.json.ExternalBoundary": {
+      "kind": "oneof_refs",
+      "refs": [
+        "Geometry_oM/Polygon.json",
+        "Geometry_oM/Polyline.json"
+      ],
+      "field_names": {
+        "Geometry_oM/Polygon.json": "polygon",
+        "Geometry_oM/Polyline.json": "polyline"
+      },
+      "reason": "Floor slice supports only Polygon or closed Polyline external boundaries."
+    },
+    "Geometry_oM/PlanarSurface.json.InternalBoundaries": {
+      "kind": "preserved_json",
+      "repeated": true,
+      "reason": "PlanarSurface internal boundaries are deferred and preserved through BHoMSource/source JSON."
+    },
+    "Spatial_oM/ShapeProfiles/AngleProfile.json.Edges": {
+      "kind": "preserved_json",
+      "repeated": true,
+      "reason": "Raw BHoM profile Edges are source-preserved; Raven's native Curve2 projection is not inferred by this generator."
+    },
+    "Spatial_oM/ShapeProfiles/BoxProfile.json.Edges": {
+      "kind": "preserved_json",
+      "repeated": true,
+      "reason": "Raw BHoM profile Edges are source-preserved; Raven's native Curve2 projection is not inferred by this generator."
+    },
+    "Spatial_oM/ShapeProfiles/CircleProfile.json.Edges": {
+      "kind": "preserved_json",
+      "repeated": true,
+      "reason": "Raw BHoM profile Edges are source-preserved; Raven's native Curve2 projection is not inferred by this generator."
+    },
+    "Spatial_oM/ShapeProfiles/RectangleProfile.json.Edges": {
+      "kind": "preserved_json",
+      "repeated": true,
+      "reason": "Raw BHoM profile Edges are source-preserved; Raven's native Curve2 projection is not inferred by this generator."
+    },
+    "Spatial_oM/ShapeProfiles/TubeProfile.json.Edges": {
+      "kind": "preserved_json",
+      "repeated": true,
+      "reason": "Raw BHoM profile Edges are source-preserved; Raven's native Curve2 projection is not inferred by this generator."
+    }
+  },
+  "deferred_branches": [
+    {
+      "name": "Floor non-planar ISurface",
+      "applies_to": ["Physical_oM/Elements/Floor.json"],
+      "reason": "Only BH.oM.Geometry.PlanarSurface is generated for Floor.Location; Extrusion, Loft, NurbsSurface, Pipe, and PolySurface are unsupported in this slice."
+    },
+    {
+      "name": "Floor curved/NURBS boundaries",
+      "applies_to": ["Physical_oM/Elements/Floor.json"],
+      "reason": "Only BH.oM.Geometry.Polygon and closed BH.oM.Geometry.Polyline external boundaries are editable; Arc, Circle, Ellipse, Line, NurbsCurve, PolyCurve, and BoundaryCurve remain source-preserved."
+    },
+    {
+      "name": "Floor internal boundaries",
+      "applies_to": ["Physical_oM/Elements/Floor.json"],
+      "reason": "PlanarSurface.InternalBoundaries are deferred and remain source-preserved through BHoMSource."
+    },
+    {
+      "name": "Floor openings",
+      "applies_to": ["Physical_oM/Elements/Floor.json"],
+      "reason": "Openings are deferred and remain source-preserved through BHoMSource."
+    },
+    {
+      "name": "Floor construction/material polymorphism",
+      "applies_to": ["Physical_oM/Elements/Floor.json"],
+      "reason": "Construction and material expansion are deferred and remain source-preserved through BHoMSource."
+    },
+    {
+      "name": "Floor FragmentSet expansion",
+      "applies_to": ["Physical_oM/Elements/Floor.json"],
+      "reason": "Fragments are not expanded by the source-schema generator in this slice."
+    },
+    {
+      "name": "Bar Box hollow/radii projection",
+      "applies_to": ["Structure_oM/Elements/Bar.json"],
+      "reason": "BoxProfile source DTO retains Thickness, OuterRadius, and InnerRadius, but hollow-section and radius behavior remain a Raven native-projection decision."
+    },
+    {
+      "name": "Bar Angle root/toe radii projection",
+      "applies_to": ["Structure_oM/Elements/Bar.json"],
+      "reason": "AngleProfile source DTO retains RootRadius and ToeRadius, but radius behavior remains a Raven native-projection decision."
+    },
+    {
+      "name": "Bar unsupported profile types",
+      "applies_to": ["Structure_oM/Elements/Bar.json"],
+      "reason": "Only RectangleProfile, CircleProfile, TubeProfile, BoxProfile, and AngleProfile are generated in this batch; Channel, Fabricated*, FreeForm, Generalised*, ISection, Kite, Tapered*, TSection, VoidedISection, and ZSection remain source-preserved."
+    },
+    {
+      "name": "Bar raw profile Edges",
+      "applies_to": ["Structure_oM/Elements/Bar.json"],
+      "reason": "Profile Edges remain repeated raw JSON values in generated DTOs and source payload; Curve2 projection is deferred."
+    }
+  ],
+  "types": {
+    "BH.oM.Structure.Elements.Bar": {
+      "kind": "value",
+      "generated_proto_type": "thirdparty.bhom.generated.structure.v1.Bar",
+      "native_motif_target": "thirdparty.bhom.data.structure.v1.Bar",
+      "native_component_id": 137,
+      "field_ownership": "generated_bhom_shape",
+      "unsupported_field_export_policy": "preserve_json_value",
+      "supported_closure": "Bar -> Node and BarFEAType; declared Bar profile companions -> RectangleProfile, CircleProfile, TubeProfile, BoxProfile, AngleProfile, and ShapeType.",
+      "projection_notes": "SectionProperty remains source-preserved JSON because its interface is polymorphic. Projection into Motif ECS behavior is manual-only and must not be inferred by this generator."
+    },
+    "BH.oM.Structure.Elements.Node": {
+      "kind": "value",
+      "generated_proto_type": "thirdparty.bhom.generated.structure.v1.Node",
+      "native_motif_target": null,
+      "field_ownership": "generated_bhom_shape",
+      "unsupported_field_export_policy": "preserve_json_value"
+    },
+    "BH.oM.Spatial.ShapeProfiles.RectangleProfile": {
+      "kind": "source_fidelity_profile_dto",
+      "generated_proto_type": "thirdparty.bhom.generated.spatial.v1.RectangleProfile",
+      "native_motif_target": "thirdparty.bhom.data.physical.v1.RectangleProfile",
+      "native_component_id": null,
+      "field_ownership": "generated_bhom_shape",
+      "unsupported_field_export_policy": "preserve_json_value"
+    },
+    "BH.oM.Spatial.ShapeProfiles.CircleProfile": {
+      "kind": "source_fidelity_profile_dto",
+      "generated_proto_type": "thirdparty.bhom.generated.spatial.v1.CircleProfile",
+      "native_motif_target": "thirdparty.bhom.data.physical.v1.CircleProfile",
+      "native_component_id": null,
+      "field_ownership": "generated_bhom_shape",
+      "unsupported_field_export_policy": "preserve_json_value"
+    },
+    "BH.oM.Spatial.ShapeProfiles.TubeProfile": {
+      "kind": "source_fidelity_profile_dto",
+      "generated_proto_type": "thirdparty.bhom.generated.spatial.v1.TubeProfile",
+      "native_motif_target": "thirdparty.bhom.data.physical.v1.TubeProfile",
+      "native_component_id": null,
+      "field_ownership": "generated_bhom_shape",
+      "unsupported_field_export_policy": "preserve_json_value"
+    },
+    "BH.oM.Spatial.ShapeProfiles.BoxProfile": {
+      "kind": "source_fidelity_profile_dto",
+      "generated_proto_type": "thirdparty.bhom.generated.spatial.v1.BoxProfile",
+      "native_motif_target": "thirdparty.bhom.data.physical.v1.BoxProfile",
+      "native_component_id": null,
+      "field_ownership": "generated_bhom_shape",
+      "unsupported_field_export_policy": "preserve_json_value"
+    },
+    "BH.oM.Spatial.ShapeProfiles.AngleProfile": {
+      "kind": "source_fidelity_profile_dto",
+      "generated_proto_type": "thirdparty.bhom.generated.spatial.v1.AngleProfile",
+      "native_motif_target": "thirdparty.bhom.data.physical.v1.AngleProfile",
+      "native_component_id": null,
+      "field_ownership": "generated_bhom_shape",
+      "unsupported_field_export_policy": "preserve_json_value"
+    },
+    "BH.oM.Physical.Elements.Floor": {
+      "kind": "source_fidelity_projection_seed",
+      "generated_proto_type": "thirdparty.bhom.generated.physical.v1.Floor",
+      "native_motif_target": null,
+      "native_component_id": null,
+      "field_ownership": "generated_source_fidelity_only",
+      "supported_closure": "Floor -> PlanarSurface -> Polygon or closed Polyline -> Point",
+      "unsupported_field_export_policy": "preserve_json_value",
+      "projection_notes": "Generated Floor has no Motif component ID and no Raven target in this migration. It remains a source-fidelity scaffold; construction, material, offset, fragments, CustomData, internal boundaries, and openings stay source-preserved through BHoMSource."
+    }
+  }
+}

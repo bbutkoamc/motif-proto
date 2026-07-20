@@ -1,0 +1,52 @@
+{
+  "_t": "BH.oM.Physical.Elements.Floor",
+  "_bhomVersion": "8.2",
+  "BHoM_Guid": "00000000-0000-0000-0000-000000000101",
+  "Name": "Deterministic polygon floor",
+  "Location": {
+    "_t": "BH.oM.Geometry.PlanarSurface",
+    "ExternalBoundary": {
+      "_t": "BH.oM.Geometry.Polygon",
+      "Vertices": {
+        "_v": [
+          {
+            "X": 0,
+            "Y": 0,
+            "Z": 0,
+            "_t": "BH.oM.Geometry.Point"
+          },
+          {
+            "X": 10,
+            "Y": 0,
+            "Z": 0,
+            "_t": "BH.oM.Geometry.Point"
+          },
+          {
+            "X": 10,
+            "Y": 8,
+            "Z": 0,
+            "_t": "BH.oM.Geometry.Point"
+          },
+          {
+            "X": 0,
+            "Y": 8,
+            "Z": 0,
+            "_t": "BH.oM.Geometry.Point"
+          }
+        ]
+      }
+    },
+    "InternalBoundaries": []
+  },
+  "Construction": {
+    "_t": "BH.oM.Physical.Constructions.Construction",
+    "Name": "source-preserved construction"
+  },
+  "Openings": [],
+  "Offset": "Undefined",
+  "Fragments": [],
+  "Tags": ["fixture"],
+  "CustomData": {
+    "source": "golden"
+  }
+}

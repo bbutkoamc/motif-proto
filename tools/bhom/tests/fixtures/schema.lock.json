@@ -1,0 +1,123 @@
+{
+  "source": {
+    "repository_url": "https://github.com/BHoM/BHoM_JSONSchema",
+    "commit": "fixture-commit"
+  },
+  "generator": {
+    "name": "motif-bhom-proto-generator",
+    "version": "0.1.0"
+  },
+  "schemas": [
+    {
+      "path": "Structure_oM/Elements/Bar.json",
+      "id": "fixture://BHoM_JSONSchema/Structure_oM/Elements/Bar.json",
+      "sha256": "69b9f266a3c44976f099ef10aa640dbbb1489c7b0bc4bd3c2b43e5ec4a1728c6"
+    },
+    {
+      "path": "Structure_oM/Elements/Node.json",
+      "id": "fixture://BHoM_JSONSchema/Structure_oM/Elements/Node.json",
+      "sha256": "7319bfd875f99fad127341a31ae83422077dc04d4407b36c63d4d419abc4553b"
+    },
+    {
+      "path": "Geometry_oM/Point.json",
+      "id": "fixture://BHoM_JSONSchema/Geometry_oM/Point.json",
+      "sha256": "094078c839e707cf376e7ecf345d13dc93fc01008ee92740adb102848dbb154a"
+    },
+    {
+      "path": "Structure_oM/Elements/BarFEAType.json",
+      "id": "fixture://BHoM_JSONSchema/Structure_oM/Elements/BarFEAType.json",
+      "sha256": "fcf87a98deba27bd3c6c7be3cef665a908231d86f50a058400d571ab87e69933"
+    },
+    {
+      "path": "BHoM/FragmentSet.json",
+      "id": "fixture://BHoM_JSONSchema/BHoM/FragmentSet.json",
+      "sha256": "52868ecab24c50a9e5b31159c614d5a0a7e73015df2107f8d18e3b1454c4b529"
+    },
+    {
+      "path": "Physical_oM/Elements/Floor.json",
+      "id": "fixture://BHoM_JSONSchema/Physical_oM/Elements/Floor.json",
+      "sha256": "26089c3a3e7b0eabe262e6cd66a1ccb9a5a9bec53c8c56164fc383f41c128ada"
+    },
+    {
+      "path": "Geometry_oM/ISurface.json",
+      "id": "fixture://BHoM_JSONSchema/Geometry_oM/ISurface.json",
+      "sha256": "65fc0664daedb0cc10eeba9feebe90a9ed16431e330a0edfaca4c529845f0cdc"
+    },
+    {
+      "path": "Geometry_oM/PlanarSurface.json",
+      "id": "fixture://BHoM_JSONSchema/Geometry_oM/PlanarSurface.json",
+      "sha256": "86c25a47dfc354bb8459716bc3633b58fe24f071d4ccf10284913f7367e9f344"
+    },
+    {
+      "path": "Geometry_oM/ICurve.json",
+      "id": "fixture://BHoM_JSONSchema/Geometry_oM/ICurve.json",
+      "sha256": "f3ca0a6526f4c1eea49f696ac3289de9d49d8ce5a6c6e9b9ae1045a44871fb78"
+    },
+    {
+      "path": "Geometry_oM/Polygon.json",
+      "id": "fixture://BHoM_JSONSchema/Geometry_oM/Polygon.json",
+      "sha256": "b1dd1771365d47f92563abbd7e1b9f8825153e5735ad335f0661e135daccb221"
+    },
+    {
+      "path": "Geometry_oM/Polyline.json",
+      "id": "fixture://BHoM_JSONSchema/Geometry_oM/Polyline.json",
+      "sha256": "7e636fee7e34f382da744d595f763954f1038fb1f6826721920f46b22bfe4238"
+    },
+    {
+      "path": "Spatial_oM/ShapeProfiles/AngleProfile.json",
+      "id": "fixture://BHoM_JSONSchema/Spatial_oM/ShapeProfiles/AngleProfile.json",
+      "sha256": "3857b0fbb693114ac0bcd74afc93ce2f30d5988385f8eb3a227f2e6bd45e2311"
+    },
+    {
+      "path": "Spatial_oM/ShapeProfiles/BoxProfile.json",
+      "id": "fixture://BHoM_JSONSchema/Spatial_oM/ShapeProfiles/BoxProfile.json",
+      "sha256": "420b6163eff5730bbffce5bd958cff9a6ac7c1a330f655391bd890810487c822"
+    },
+    {
+      "path": "Spatial_oM/ShapeProfiles/CircleProfile.json",
+      "id": "fixture://BHoM_JSONSchema/Spatial_oM/ShapeProfiles/CircleProfile.json",
+      "sha256": "862cd64dc56ced2fd6b41a7965952c433192d61f941ea81d44013d6e242b636e"
+    },
+    {
+      "path": "Spatial_oM/ShapeProfiles/RectangleProfile.json",
+      "id": "fixture://BHoM_JSONSchema/Spatial_oM/ShapeProfiles/RectangleProfile.json",
+      "sha256": "a6b2cb57e7ddb8acfbed34b2c42b6c7194a5cc3291f76149cb3a2bd65f7bedff"
+    },
+    {
+      "path": "Spatial_oM/ShapeProfiles/ShapeType.json",
+      "id": "fixture://BHoM_JSONSchema/Spatial_oM/ShapeProfiles/ShapeType.json",
+      "sha256": "d9f954d1c310673203986ccf44e5f1d32ee06504df109a71d614562f89dadd39"
+    },
+    {
+      "path": "Spatial_oM/ShapeProfiles/TubeProfile.json",
+      "id": "fixture://BHoM_JSONSchema/Spatial_oM/ShapeProfiles/TubeProfile.json",
+      "sha256": "b85c6138698393f4edd9574066a0974f7abd9dada25fd5285b2ea6a5cac54b25"
+    }
+  ],
+  "outputs": [
+    {
+      "entry_schema_path": "Structure_oM/Elements/Bar.json",
+      "mode": "dry-run",
+      "path": "thirdparty/bhom/generated/spatial/v1/spatial.proto",
+      "content_sha256": "e11ae3c40980499ea5c7b29c106c4e33fbb4f9eece72b2f504f7836edbcd0532"
+    },
+    {
+      "entry_schema_path": "Structure_oM/Elements/Bar.json",
+      "mode": "dry-run",
+      "path": "thirdparty/bhom/generated/structure/v1/structure.proto",
+      "content_sha256": "07d931645ad8c3c07a291843fcf937b35249b81a42ba08c32f26e8b53f500107"
+    },
+    {
+      "entry_schema_path": "Physical_oM/Elements/Floor.json",
+      "mode": "dry-run",
+      "path": "thirdparty/bhom/generated/geometry/v1/geometry.proto",
+      "content_sha256": "bfd4c4f8e196eeee7bdd8fe00255f9cd397cfa9c35242516867f605a42528e31"
+    },
+    {
+      "entry_schema_path": "Physical_oM/Elements/Floor.json",
+      "mode": "dry-run",
+      "path": "thirdparty/bhom/generated/physical/v1/physical.proto",
+      "content_sha256": "ebfc11c4d25cc5540c8f1a1769549c99b1cfd3431f7a300ceb59557261e9fba7"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "_t": "BH.oM.Physical.Elements.Floor",
+  "_bhomVersion": "8.2",
+  "BHoM_Guid": "00000000-0000-0000-0000-000000000102",
+  "Name": "Unsupported nurbs floor",
+  "Location": {
+    "_t": "BH.oM.Geometry.NurbsSurface",
+    "ControlPoints": [],
+    "Weights": [],
+    "UKnots": [],
+    "VKnots": [],
+    "UDegree": 3,
+    "VDegree": 3,
+    "InnerTrims": [],
+    "OuterTrims": []
+  },
+  "Construction": {
+    "_t": "BH.oM.Physical.Constructions.Construction"
+  },
+  "Openings": [],
+  "Offset": "Undefined",
+  "Fragments": [],
+  "Tags": [],
+  "CustomData": {}
+}

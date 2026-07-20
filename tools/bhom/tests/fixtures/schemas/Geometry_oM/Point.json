@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fixture://BHoM_JSONSchema/Geometry_oM/Point.json",
+  "title": "Point",
+  "type": ["object", "null"],
+  "properties": {
+    "X": {
+      "type": "number"
+    },
+    "Y": {
+      "type": "number"
+    },
+    "Z": {
+      "type": "number"
+    },
+    "_t": {
+      "type": "string",
+      "const": "BH.oM.Geometry.Point"
+    }
+  }
+}
