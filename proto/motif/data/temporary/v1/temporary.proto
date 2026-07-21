@@ -1056,6 +1056,37 @@ message MultiRailSurface {
   motif.data.geometry.v1.Vector3 direction = 2;
 }
 
+// Which surface parameter a persisted isoparametric curve holds fixed.
+enum SurfaceIsoDirection {
+  SURFACE_ISO_DIRECTION_UNSPECIFIED = 0;
+  // `u` fixed: the curve runs across the rails (along `v`).
+  SURFACE_ISO_DIRECTION_U = 1;
+  // `v` fixed: the curve runs along the rails (along `u`).
+  SURFACE_ISO_DIRECTION_V = 2;
+}
+
+// An isoparametric curve hosted on a MultiRailSurface entity.
+//
+// Stores only the host reference, fixed direction, and normalized parameter —
+// the world-space polyline is derived client-side by sampling the host
+// surface, so the curve follows every surface edit (rail geometry or
+// workplane/level moves). Deleting the host deletes its iso curves.
+message SurfaceIsoCurve {
+  option (motif.extension.v1.message).component = 157;
+
+  // The host surface entity (carries `MultiRailSurface`).
+  motif.extension.v1.EntityReference surface = 1 [(buf.validate.field).required = true];
+
+  // Which parameter is held fixed.
+  SurfaceIsoDirection direction = 2;
+
+  // The fixed parameter value, normalized to [0, 1].
+  double param = 3 [(buf.validate.field).double = {
+    gte: 0.0
+    lte: 1.0
+  }];
+}
+
 // A behavior which keeps a bar spanning two node points.
 //
 // Regeneration reads both nodes' Point3 positions and rewrites the target
