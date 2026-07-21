@@ -973,3 +973,40 @@ message CurveHostedPointBehavior {
     }
   ];
 }
+
+// A behavior which keeps a hosting-surface plane attached to a host point.
+//
+// Regeneration reads the host point's absolute transform, applies its rotation
+// to the authored local plane axes, and rewrites the target
+// TrimmedHostingSurface's plane so hosted instances (HostedBehavior) follow the
+// point's translation and rotation.
+message PointHostedPlaneBehavior {
+  option (motif.extension.v1.message).component = 153;
+
+  // The host point's absolute transform (plane origin and orientation).
+  motif.extension.v1.DataReference host_transform = 1 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.core.v1.Isometry"
+    }
+  ];
+
+  // The plane's u axis in the host point's local frame.
+  motif.data.geometry.v1.Vector3 x_axis = 2;
+
+  // The plane's normal in the host point's local frame.
+  motif.data.geometry.v1.Vector3 z_axis = 3;
+
+  // Half-extent of the plane's square parametric domain, in meters.
+  double half_extent = 4;
+
+  // The trimmed hosting surface whose plane is recomputed.
+  motif.extension.v1.DataReference output_surface = 5 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.temporary.v1.TrimmedHostingSurface"
+    }
+  ];
+}
