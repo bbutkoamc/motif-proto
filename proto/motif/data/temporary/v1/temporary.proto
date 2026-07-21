@@ -1087,6 +1087,66 @@ message SurfaceIsoCurve {
   }];
 }
 
+// A parameter binding keeping a Point3 hosted on a MultiRailSurface entity.
+//
+// Stores the host reference and normalized `(u, v)`; the point's world
+// position is derived client-side by evaluating the host surface, so the
+// point follows every surface edit (rail geometry or workplane/level moves).
+// Deleting the host deletes its hosted points.
+message SurfaceHostParam {
+  option (motif.extension.v1.message).component = 158;
+
+  // The host surface entity (carries `MultiRailSurface`).
+  motif.extension.v1.EntityReference surface = 1 [(buf.validate.field).required = true];
+
+  // Normalized `u` along the rails, in [0, 1].
+  double u = 2 [(buf.validate.field).double = {
+    gte: 0.0
+    lte: 1.0
+  }];
+
+  // Normalized `v` across the rails, in [0, 1].
+  double v = 3 [(buf.validate.field).double = {
+    gte: 0.0
+    lte: 1.0
+  }];
+}
+
+// Which curve kind a through-points curve derives from its driver points.
+enum CurveThroughPointsKind {
+  CURVE_THROUGH_POINTS_KIND_UNSPECIFIED = 0;
+  // Piecewise linear segments through the points (2 points = a line).
+  CURVE_THROUGH_POINTS_KIND_LINE = 1;
+  // A circular arc through exactly three points.
+  CURVE_THROUGH_POINTS_KIND_ARC = 2;
+  // An interpolating NURBS spline through the points.
+  CURVE_THROUGH_POINTS_KIND_SPLINE = 3;
+}
+
+// A binding deriving a sketch curve's geometry from driver Point3 entities.
+//
+// The referenced points act as the curve's user control points: whenever a
+// driver point moves (directly, or derived — e.g. a surface-hosted point),
+// the curve's plane-local `Curve2` is recomputed from the points' world
+// positions projected onto the curve's sketch plane. Deleting a driver point
+// deletes the curve.
+message CurveThroughPoints {
+  option (motif.extension.v1.message).component = 159;
+
+  // The driver Point3 entities, in order.
+  repeated motif.extension.v1.EntityReference points = 1 [(buf.validate.field).repeated = {
+    min_items: 2
+    max_items: 64
+  }];
+
+  // How the points become geometry.
+  CurveThroughPointsKind kind = 2;
+
+  // Interpolating spline order (degree + 1); read only for KIND_SPLINE.
+  // Zero selects the default (3).
+  uint32 order = 3;
+}
+
 // A behavior which keeps a bar spanning two node points.
 //
 // Regeneration reads both nodes' Point3 positions and rewrites the target
