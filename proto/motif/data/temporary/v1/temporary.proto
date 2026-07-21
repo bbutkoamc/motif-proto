@@ -1030,12 +1030,14 @@ message ResolvedBarSweepInputs {
   motif.data.geometry.v1.CoordinateSystem3 coordinate_system = 2;
 }
 
-// A persisted parametric surface host spanning one or two rail curves.
+// A persisted parametric surface host spanning one or more rail curves.
 //
 // With two rails the surface is ruled: `S(u, v)` linearly blends the rails'
 // world points at normalized parameter `u` in `[0, 1]`, with `v` in `[0, 1]`
-// from rail 0 to rail 1. With one rail the surface is an extrusion: the rail
-// swept along `direction`, with `v` in `[0, 1]` scaling the vector.
+// from rail 0 to rail 1. With three or more rails the surface is a piecewise
+// ruled loft: `v` in `[0, 1]` spans the rails uniformly, blending within each
+// consecutive pair. With one rail the surface is an extrusion: the rail swept
+// along `direction`, with `v` in `[0, 1]` scaling the vector.
 //
 // Rails are referenced by entity id; each rail entity carries the `Curve2`
 // (plane-local) and its sketch membership supplies the world plane. Only the
@@ -1043,10 +1045,11 @@ message ResolvedBarSweepInputs {
 message MultiRailSurface {
   option (motif.extension.v1.message).component = 156;
 
-  // The rail curve entities, in order. One rail = extruded, two = ruled.
+  // The rail curve entities, in order. One rail = extruded, two = ruled,
+  // three or more = piecewise ruled loft.
   repeated motif.extension.v1.EntityReference rails = 1 [(buf.validate.field).repeated = {
     min_items: 1
-    max_items: 2
+    max_items: 8
   }];
 
   // World-space extrusion vector in meters; read only when one rail is given.
