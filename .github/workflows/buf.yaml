@@ -44,3 +44,19 @@ jobs:
           --lock tools/bhom/schema.lock.json
           --catalog tools/bhom/projection_catalog.json
           --registry-root proto
+
+  bhom-floor-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          schema_root="$(mktemp -d)"
+          trap 'rm -rf "$schema_root"' EXIT
+          python3 tools/bhom_proto_generator.py fetch-locked \
+            --lock tools/bhom/schema.lock.json \
+            --schema-root "$schema_root"
+          python3 tools/bhom_proto_generator.py check \
+            --schema-root "$schema_root" \
+            --entry Physical_oM/Elements/Floor.json \
+            --lock tools/bhom/schema.lock.json \
+            --catalog tools/bhom/projection_catalog.json

@@ -151,6 +151,27 @@ class BHoMProtoGeneratorTests(unittest.TestCase):
         self.assertIn("oneof external_boundary", first.stdout)
         self.assertNotIn("component =", first.stdout)
 
+    def test_floor_check_verifies_locked_output_hashes(self):
+        entries = ["Physical_oM/Elements/Floor.json"]
+        result = run_check("--skip-buf", entries=entries)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(report["status"], "passed")
+        self.assertEqual(
+            report["outputs"],
+            [
+                {
+                    "content_sha256": "bfd4c4f8e196eeee7bdd8fe00255f9cd397cfa9c35242516867f605a42528e31",
+                    "path": "thirdparty/bhom/generated/geometry/v1/geometry.proto",
+                },
+                {
+                    "content_sha256": "ebfc11c4d25cc5540c8f1a1769549c99b1cfd3431f7a300ceb59557261e9fba7",
+                    "path": "thirdparty/bhom/generated/physical/v1/physical.proto",
+                },
+            ],
+        )
+
     def test_check_verifies_manifest_hash(self):
         result = run_check("--skip-buf")
 

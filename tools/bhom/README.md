@@ -56,11 +56,13 @@ future Raven projection slice and remain source-preserved through `BHoMSource`.
 
 ## Floor Support Boundary
 
-Generated `thirdparty.bhom.generated.physical.v1.Floor` is a source-fidelity schema seed
-with no Motif component ID. It is not a handwritten
+`thirdparty.bhom.generated.physical.v1.Floor` is an unmaterialized,
+generator/golden-only source-fidelity scaffold with no Motif component ID. It
+is not materialized under `proto/thirdparty/bhom/generated/`, is not currently
+in the SDK descriptor, and is not a handwritten
 `thirdparty.bhom.data.physical.v1.Floor` component.
 
-This migration preserves only the generated source-fidelity Floor scaffold. It
+This migration preserves this future source-fidelity Floor scaffold only. It
 does not select or imply a Raven projection target:
 
 - `Floor.Location` is represented by `PlanarSurface`
@@ -101,9 +103,11 @@ python3 tools/bhom_proto_generator.py check \
 
 ## Committed Registry Output
 
-The Bar/profile batch is materialized under `proto/thirdparty/bhom/generated/` and is
-checked against the pinned source lock in CI. Do not hand-edit those files;
-regenerate them from the locked schemas and commit the resulting diff.
+Only the Bar/profile batch is materialized under `proto/thirdparty/bhom/generated/`
+and checked against the pinned source lock in CI. Floor remains intentionally
+unmaterialized and is validated separately against its locked source and
+generator output. Do not hand-edit the materialized files; regenerate them
+from the locked schemas and commit the resulting diff.
 
 ```sh
 python3 tools/bhom_proto_generator.py check-committed \

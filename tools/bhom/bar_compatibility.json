@@ -13,7 +13,7 @@
   "existing_definitions": {
     "native_projection_bar": {
       "proto_type": "thirdparty.bhom.data.structure.v1.Bar",
-      "file": "proto/thirdparty/bhom/structure/v1/structure.proto",
+      "file": "proto/thirdparty/bhom/data/structure/v1/structure.proto",
       "component_id": 137,
       "owner": "handwritten_native_projection",
       "fields": [
@@ -41,13 +41,13 @@
     },
     "bhom_base": {
       "proto_type": "thirdparty.bhom.data.base.v1.BHoMBase",
-      "file": "proto/thirdparty/bhom/base/v1/base.proto",
+      "file": "proto/thirdparty/bhom/data/base/v1/base.proto",
       "component_id": 133
     },
     "bhom_source": {
       "status": "formal_shared_proto_home",
       "proto_type": "thirdparty.bhom.data.base.v1.BHoMSource",
-      "file": "proto/thirdparty/bhom/base/v1/base.proto",
+      "file": "proto/thirdparty/bhom/data/base/v1/base.proto",
       "component_id": 151,
       "owner": "handwritten_shared_provenance",
       "raven_instruction": "Replace Raven-local pilot definitions with thirdparty.bhom.data.base.v1.BHoMSource once this proto is consumed. Keep it separate from generated thirdparty.bhom.generated.* source-fidelity types and native projection components.",
@@ -104,7 +104,7 @@
       "path": "Structure_oM/Elements/Bar.json",
       "id": "https://raw.githubusercontent.com/BHoM/BHoM_JSONSchema/develop/Structure_oM/Elements/Bar.json"
     },
-    "output_sha256": "bba73ae86ccf400cd94c25d86366d50b8250637679273563625c20801ceedd90"
+    "output_sha256": "54290f50be31631fef130b12a16d6a89d610644b2b273205ded7089cb9114604"
   },
   "field_comparison": {
     "identical_fields": [],
