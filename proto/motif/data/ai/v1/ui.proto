@@ -11,12 +11,12 @@ import "motif/extension/v1/options.proto";
 // chat turn.
 //
 // The component is the UI kind's marker: what kind of artifact the entity is
-// follows from this component's presence — there is no scalar kind field.
+// follows from this component's presence
 // Retrieve a catalog with a Query scoped to the library model id and
 // where_all_components = [151], selecting `AssignedName` and `AgentUI` —
 // listing never requires fetching a body.
 //
-// A canonical UI is stored as an entity in a dedicated, `Hidden`-marked
+// A canonical UI will typically be stored as an entity in a dedicated, `Hidden`-marked
 // library model (the same pattern as `AgentSkill`), conventionally composed
 // with:
 //   - `AssignedName` — the UI's display name,
