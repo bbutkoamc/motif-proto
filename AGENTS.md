@@ -7,6 +7,21 @@ an agent (or human) needs to add or change schemas correctly.
 Tooling is managed with [`mise`](https://mise.jdx.dev/) (see `.config/mise.toml`)
 and [`buf`](https://buf.build/). Run `mise run <task>` for the tasks below.
 
+## Commit and PR hygiene
+
+This repository is public, so treat every commit and pull request as externally
+visible. This applies to all contributors, internal and external:
+
+- Prefer a GitHub [`users.noreply.github.com`](https://docs.github.com/en/account-and-profile/how-tos/email-preferences/setting-your-commit-email-address#setting-your-email-address-for-a-single-repository)
+  email for your author/committer identity so you do not expose a personal
+  address. Using a public email you are comfortable sharing is also fine.
+- Do not add `Co-authored-by`, `Made-with`, or other tool/AI attribution
+  trailers to commits or PRs.
+- Do not link to private or internal systems (such as private issue trackers)
+  or paste internal-only URLs or ticket IDs in commit messages or PR
+  descriptions.
+- Prefer a short subject plus optional technical rationale; no ticket footers.
+
 ## Protobuf package names
 
 Schemas are grouped into these top-level packages, all versioned `v1`:
