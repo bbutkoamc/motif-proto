@@ -1,0 +1,34 @@
+# Checks that the commits a pull request adds do not carry a Motif-internal
+# email address (see AGENTS.md "Commit and PR hygiene").
+#
+# This repository is public, so commit metadata and message bodies are visible
+# to everyone. Only the internal domains are rejected — an external contributor
+# committing under their own public address passes.
+#
+# This gate runs after the push that created or updated the pull request, so it
+# reports a leak rather than preventing one. `mise run check-commit-emails` is
+# part of `mise run lint`; running lint before pushing is what actually keeps an
+# address private.
+name: Commit Emails
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  commit-email-check:
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 so the base commit is present and the range resolves.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: jdx/mise-action@v2
+      # The range is passed through the environment rather than interpolated
+      # into the shell command.
+      - run: mise run check-commit-emails
+        env:
+          COMMIT_RANGE: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}

@@ -22,6 +22,25 @@ visible. This applies to all contributors, internal and external:
   descriptions.
 - Prefer a short subject plus optional technical rationale; no ticket footers.
 
+`mise run check-commit-emails` rejects Motif-internal email domains anywhere in
+a commit's identities or message; it is part of `mise run lint` and runs in CI on
+every pull request. **Run it before you push.** The CI run happens after the
+push, so by then the address is already public and cannot be taken back —
+rewriting history here is not an option, because published Buf Schema Registry
+commits reference these git commits.
+
+```sh
+mise run check-commit-emails             # origin/main..HEAD
+mise run check-commit-emails HEAD~1..HEAD
+```
+
+To set a public identity for this clone only:
+
+```sh
+git config user.email <id>+<username>@users.noreply.github.com
+git config user.email                    # confirm before committing
+```
+
 ## Protobuf package names
 
 Schemas are grouped into these top-level packages, all versioned `v1`:
@@ -112,7 +131,7 @@ Format, then run the full lint suite (the same checks CI runs, including the
 
 ```sh
 mise run format   # buf format -w + taplo fmt
-mise run lint     # buf format check, buf lint, buf breaking, taplo check, ID-gap check
+mise run lint     # buf format check, buf lint, buf breaking, taplo check, ID-gap check, commit-email check
 ```
 
 `mise run lint` runs `buf breaking` against `origin/main`, so make sure your
