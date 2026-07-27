@@ -1147,6 +1147,39 @@ message CurveThroughPoints {
   uint32 order = 3;
 }
 
+// A curtain subdivision system hosted on a MultiRailSurface entity.
+//
+// Owns CurtainGridLine children (explicit U/V param DOFs). Cell topology is
+// derived client-side from the lines — not persisted. Deleting the host
+// surface deletes the system (Requires cascade).
+message CurtainSystem {
+  option (motif.extension.v1.message).component = 160;
+
+  // The host surface entity (carries `MultiRailSurface`).
+  motif.extension.v1.EntityReference surface = 1 [(buf.validate.field).required = true];
+}
+
+// A curtain grid line — one DOF of a CurtainSystem (iso U or V at a param).
+//
+// Same atom *shape* as SurfaceIsoCurve (dir + param) but owned by a system
+// and drives derived cell topology. World polyline is sampled from the
+// system's host surface client-side. Deleting the system deletes its lines.
+message CurtainGridLine {
+  option (motif.extension.v1.message).component = 161;
+
+  // The owning CurtainSystem entity.
+  motif.extension.v1.EntityReference system = 1 [(buf.validate.field).required = true];
+
+  // Which surface parameter is held fixed (reuse SurfaceIsoDirection).
+  SurfaceIsoDirection direction = 2;
+
+  // The fixed parameter value, normalized to [0, 1].
+  double param = 3 [(buf.validate.field).double = {
+    gte: 0.0
+    lte: 1.0
+  }];
+}
+
 // A behavior which keeps a bar spanning two node points.
 //
 // Regeneration reads both nodes' Point3 positions and rewrites the target
