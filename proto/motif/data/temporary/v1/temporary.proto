@@ -1180,6 +1180,61 @@ message CurtainGridLine {
   }];
 }
 
+// Persist recipe for absolute-frame curtain panels on a CurtainSystem.
+//
+// Panel solids are (re)filled client-side from the system's derived cells;
+// only the owning system and depth are persisted.
+message CurtainPanelSet {
+  option (motif.extension.v1.message).component = 162;
+
+  // The owning CurtainSystem entity.
+  motif.extension.v1.EntityReference system = 1;
+
+  // Panel thickness / depth in meters.
+  double depth = 2;
+}
+
+// Persist recipe for absolute-frame curtain mullions on a CurtainSystem.
+//
+// Mullion solids are (re)filled client-side along grid lines; section and
+// direction filter are persisted.
+message CurtainMullionSet {
+  option (motif.extension.v1.message).component = 163;
+
+  // The owning CurtainSystem entity.
+  motif.extension.v1.EntityReference system = 1;
+
+  // Mullion section width (meters).
+  double width = 2;
+
+  // Mullion section height (meters).
+  double height = 3;
+
+  // Which grid lines to fill: "u", "v", or "both".
+  string dir = 4;
+}
+
+// Positional ElementBinder snapshot for one producer callsite.
+//
+// Corresponds to Dynamo Trace / Rhino.Inside Element Tracking: re-running a
+// graph, A2UI Apply, or console panel reconciles against these slots
+// (update-in-place / grow / orphan-delete) instead of fire-and-forget create.
+message ProducerBinding {
+  option (motif.extension.v1.message).component = 164;
+
+  // Stable callsite key (e.g. "bricks/hosts", "tetra/struts", A2UI surface+role).
+  string callsite = 1 [(buf.validate.field).string = {min_len: 1}];
+
+  // Entities produced last run, in positional order.
+  repeated motif.extension.v1.EntityReference slots = 2;
+
+  // Optional parallel kind tags (empty, or same length as `slots`).
+  repeated string kinds = 3;
+
+  // Last policy: "update" | "replace" | "disabled". Empty means "update".
+  string policy = 4;
+}
+
 // A behavior which keeps a bar spanning two node points.
 //
 // Regeneration reads both nodes' Point3 positions and rewrites the target
