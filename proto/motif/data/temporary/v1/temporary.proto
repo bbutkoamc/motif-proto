@@ -1351,6 +1351,13 @@ message AnalysisGrid {
   optional string mesh_entity_id = 6;
   optional double spacing_meters = 7 [(buf.validate.field).double = {gt: 0}];
   optional double offset_meters = 8;
+  // Optional domain outline as little-endian WKB MultiPolygon in sensor-local UV
+  // (meters). Same orthonormal UV basis as cell_wkb (derived from sensor normals).
+  optional bytes domain_wkb = 9;
+  // Optional per-sensor cell polygons as little-endian WKB MultiPolygon in
+  // sensor-local UV (meters). Length MUST match sensors when set for filled viz.
+  // UV origin = sensor.position; U/V = deterministic tangent basis from normal.
+  repeated bytes cell_wkb = 10;
 }
 
 enum AnalysisQuantity {
