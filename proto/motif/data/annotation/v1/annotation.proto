@@ -5,6 +5,7 @@ package motif.data.annotation.v1;
 
 import "buf/validate/validate.proto";
 import "motif/data/geometry/v1/geometry.proto";
+import "motif/data/model/v1/model.proto";
 import "motif/data/style/v1/style.proto";
 import "motif/extension/v1/options.proto";
 import "motif/extension/v1/reference.proto";
@@ -176,10 +177,97 @@ message Dimension {
 
   // Field-number allocation (kind/placement oneofs and top-level fields share
   // this message's number space): 1-2 kind arms; 3-4 placement arms (4 =
-  // shared/DimensionChain, Shift-run placement); 5 = style assignment
-  // (named-style reference + override, once the style model carries units
-  // instead of raw pixels); future kind arms (linear_projected, radial) and
-  // other extensions take 6+.
+  // shared/DimensionChain, Shift-run placement); 5 unused — style assignment
+  // moved to its own DimensionStyleOverride component so a restyle and a
+  // geometry edit are separate components and do not overwrite one another;
+  // future kind arms (linear_projected, radial) and other extensions take 6+.
+}
+
+// A dimension's look: label text, the dimension and extension linework, and
+// the units its value is displayed in.
+//
+// Every field is sparse: an unset field inherits from the next tier down,
+// rather than meaning "zero". Resolution runs per-dimension override -> the
+// model's default for that dimension's class (DimensionStyleDefaults) -> the
+// application default. That layering is why the scalars are `optional` rather
+// than using 0 as a sentinel the way TextStyle.size does: 0 is a legitimate
+// authored value for the offsets and extensions here, and must be
+// distinguishable from "inherit".
+//
+// Sizes are millimeters measured on the printed page, so a dimension holds its
+// printed size across view scales.
+message DimensionStyle {
+  // Label text color.
+  motif.data.style.v1.Color text_color = 1;
+  // Label text size, millimeters on paper. This is the em size (the ordinary
+  // meaning of a "12 pt" text size), not the cap height.
+  optional float text_size = 2;
+  // Gap between the dimension line and the label.
+  optional float text_offset = 3;
+  // 4 reserved: label font (motif.data.style.v1.Font), once more than one
+  // family is available to choose from.
+  // 5 reserved: label width factor (horizontal glyph scale), once the text
+  // stack can render one.
+
+  // Color of the dimension line, extension lines, and terminators.
+  motif.data.style.v1.Color line_color = 6;
+  // Stroke weight for the dimension line, extension lines, and terminators. A
+  // pen size of 0 means the renderer draws a screen-constant hairline.
+  motif.data.style.v1.LineStyle line = 7;
+  // Gap between the measured geometry and the start of an extension line
+  // (a.k.a. witness line).
+  optional float extension_line_offset = 8;
+  // How far an extension line continues past the dimension line.
+  optional float extension_line_extension = 9;
+  // How far the dimension line continues past the extension lines. Linear
+  // dimensions only; an angular dimension's arc has no such overrun, while the
+  // offsets and terminator sizes above apply to both.
+  optional float dimension_line_extension = 10;
+  // 11-12 reserved: terminator kind (tick vs arrow) and terminator size.
+
+  // Length unit, notation, and precision for a linear dimension's value.
+  // Unset inherits the model's unit settings.
+  motif.data.model.v1.LengthUnitGroup length_units = 13;
+  // Angle unit, notation, and precision for an angular dimension's value.
+  // Unset inherits the model's unit settings.
+  motif.data.model.v1.AngleUnitGroup angle_units = 14;
+}
+
+// A single dimension's own style, overriding the model default for its class.
+// Attached to the dimension entity; absent means the dimension is drawn
+// entirely from its class default.
+//
+// Separate from Dimension (120) so that restyling a dimension and editing its
+// geometry touch different components: commits serialize whole components, so
+// folding style into Dimension would make a concurrent restyle and grip-drag
+// overwrite each other. It also costs nothing to store for the dimensions a
+// user never restyles.
+message DimensionStyleOverride {
+  option (motif.extension.v1.message).component = 165;
+
+  // The overriding style. Sparse — unset fields inherit.
+  DimensionStyle style = 1;
+  // 2 reserved: reference to a shared style, once styles can be authored as
+  // their own entities. A reference names the base this override applies on
+  // top of; unset means the class default is the base.
+}
+
+// The default dimension style per consumer class, held on the model root
+// alongside its other model-wide settings. Each is the base that a
+// DimensionStyleOverride applies on top of; unset fields fall through to the
+// application default.
+message DimensionStyleDefaults {
+  option (motif.extension.v1.message).component = 166;
+
+  // Default for the measure tool's on-screen readout, which is sized in screen
+  // terms rather than on paper.
+  DimensionStyle measure = 1;
+  // Default for temporary dimensions shown while editing.
+  DimensionStyle temporary = 2;
+  // Default for dimensions placed into the model.
+  DimensionStyle permanent = 3;
+  // 4-6 reserved: a per-class reference to a shared style, mirroring
+  // DimensionStyleOverride's reserved field 2.
 }
 
 // Rich-text content + styling for a text annotation. Box geometry stays in
