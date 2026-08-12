@@ -78,32 +78,32 @@ message ResolvedParameters {
   map<string, google.protobuf.Any> values = 1;
 }
 
-// A scalar expression node over f64 values. Shared by two consumers,
-// distinguished by their binding-leaf kind:
+// A scalar expression node over f64 values.
 //
-//   * Change-propagation parameter bindings use the `binding` (`DataReference`)
-//     leaf, addressing a `TYPE_DOUBLE` slot that must hold a `DoubleValue`
-//     payload. The `parameter` leaf is rejected.
-//   * Built-in asset geometry configurations use the `parameter` leaf, a name
-//     looked up in the instance's resolved-parameter scope. The `binding`
-//     (`DataReference`) leaf is rejected.
+// A value can come from three leaf forms:
 //
-// The invalid leaf for a given consumer is rejected at decode.
+//   * `literal` contains the number directly.
+//   * `parameter` names a parameter in the consumer's evaluation scope.
+//   * `binding` reads a specifically addressed `TYPE_DOUBLE` value through a
+//     `DataReference`.
+//
+// All consumers accept `literal`.
+// Change-propagation parameter bindings accept `binding` but reject `parameter`.
+// Built-in asset geometry configurations accept `parameter` but reject `binding`.
+// Reference geometry specifications accept both `parameter` and `binding`.
 message ParametricExpression {
   // The expression node.
   oneof node {
     // A literal f64 value.
     double literal = 1;
 
-    // Change-propagation slot-ref leaf (parameter bindings only): a reference to
-    // a `TYPE_DOUBLE` slot supplying the value.
+    // A `DataReference` to a specifically addressed `TYPE_DOUBLE` value.
     motif.extension.v1.DataReference binding = 2 [(motif.extension.v1.field).data_reference_expected_type = {kind: TYPE_DOUBLE}];
 
     // A binary operation over two sub-expressions.
     ParametricBinaryOp binary_op = 3;
 
-    // Named-parameter leaf, looked up in the evaluation scope (geometry configs
-    // only).
+    // A parameter name looked up in the consumer's evaluation scope.
     string parameter = 4;
 
     // Arithmetic negation of a sub-expression.
@@ -941,4 +941,524 @@ message SourceAsset {
   // Optional. When set, the source entity is resolved against this model and
   // version rather than the materialized entity's own model.
   motif.extension.v1.ModelReference model = 2;
+}
+
+// Authored declarations for stable reference geometry on an asset.
+//
+// A resolver evaluates each entry and writes a `ReferenceGeometry` component
+// whose entries preserve the declared IDs. The asset's existing lifecycle
+// determines whether that resolved component belongs on an instance or on a
+// materialized asset.
+//
+// Every construction method produces coordinates in the local frame of the
+// entity that receives the resolved `ReferenceGeometry`. All entries in one
+// specification therefore share that single frame (even if they use different
+// construction methods).
+message ReferenceGeometrySpec {
+  option (motif.extension.v1.message).component = 168;
+
+  // The asset's reference geometry declarations. IDs must be unique within
+  // this component and remain stable across compatible recipe revisions.
+  repeated ReferenceGeometryEntrySpec entries = 1 [(buf.validate.field).repeated.min_items = 1];
+}
+
+// One authored stable reference geometry declaration.
+message ReferenceGeometryEntrySpec {
+  // Stable identifier scoped to the containing `ReferenceGeometrySpec`.
+  uint32 id = 1 [(buf.validate.field).uint32.gt = 0];
+
+  // Optional human-readable name.
+  optional string name = 2;
+
+  // Selection priority. Larger values have higher priority.
+  int32 priority = 3;
+
+  // How to construct the reference geometry.
+  oneof primitive {
+    option (buf.validate.oneof).required = true;
+
+    // A planar reference.
+    PlaneSpec plane = 4;
+
+    // A cylindrical reference.
+    CylinderSpec cylinder = 5;
+
+    // A reference whose concrete primitive or construction method is selected
+    // at runtime from at least two supported construction cases. Use `plane`
+    // or `cylinder` directly when the recipe needs only one construction
+    // method.
+    //
+    // Useful for assets like a wall whose center-line reference geometry is a
+    // plane for a straight curve and a cylinder for a circular curve.
+    CurveBasedGeometrySpec curve_based = 6;
+  }
+}
+
+// Authored construction cases for a reference geometry whose primitive or
+// construction method is selected at runtime.
+//
+// Use this only where runtime selection is needed between at least two
+// construction cases, such as a wall centerline that can be planar or
+// cylindrical depending on the wall curve type. If only one construction method is
+// needed, use the relevant direct spec such as PlaneSpec.
+message CurveBasedGeometrySpec {
+  // Construction cases supported by this recipe.
+  // Each construction method may appear at most once. (We do not choose between
+  // duplicates; ReferenceGeometrySpec with duplicates is treated as invalid).
+  repeated CurveBasedGeometryCase cases = 1 [(buf.validate.field).repeated.min_items = 2];
+}
+
+// One construction case in a CurveBasedGeometrySpec.
+message CurveBasedGeometryCase {
+  // The selected arm identifies the construction method.
+  oneof definition {
+    option (buf.validate.oneof).required = true;
+
+    // Applies only when the resolved Curve2 contains a Line2.
+    PlaneUsingLineOffsetSpec line_offset = 1;
+
+    // Applies only when the resolved Curve2 contains a Circle2.
+    CylinderUsingCurveRadiusSpec circle_radius = 2;
+  }
+}
+
+// Authored mappings from asset parameters to reference geometry pairs.
+//
+// This authored component is intentionally distinct from the published
+// ReferenceGeometryParameterMap, even though the two are virtually identical.
+// This allows the asset to own the spec while the instance owns the published map.
+// (On a materialized instance both can coexist)
+// The spec preserves authored intent, whereas the published map includes entries
+// only after their parameter names and reference IDs validate, and its validity_status
+// reports whether they are usable with the current ReferenceGeometry.
+message ReferenceGeometryParameterMapSpec {
+  option (motif.extension.v1.message).component = 169;
+
+  // The asset's parameter-to-reference mappings.
+  repeated ReferenceGeometryParameterMapEntrySpec entries = 1 [(buf.validate.field).repeated.min_items = 1];
+}
+
+// One authored mapping from a scalar parameter to reference geometry.
+message ReferenceGeometryParameterMapEntrySpec {
+  // The name of the declared asset parameter controlled by this reference pair.
+  string parameter_name = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The first reference geometry ID.
+  uint32 start_reference_id = 2 [(buf.validate.field).uint32.gt = 0];
+
+  // The second reference geometry ID.
+  uint32 end_reference_id = 3 [(buf.validate.field).uint32.gt = 0];
+
+  // How the parameter relates to the two references.
+  ReferenceGeometryParameterMappingKind kind = 4 [
+    (buf.validate.field).enum.defined_only = true,
+    (buf.validate.field).enum.not_in = 0
+  ];
+}
+
+// Concrete reference geometry resolved from a `ReferenceGeometrySpec`.
+//
+// Every primitive is expressed in the local frame of the entity carrying this
+// component. To use the geometry in model coordinates a client should apply
+// the transform of the particular instance being consumed.
+// If the component is on an instance and the instance has no placement transform,
+// its local-to-model transform is identity.
+// If the component is shared on a materialized asset, an instance of that asset
+// is required to establish model coordinates.
+message ReferenceGeometry {
+  option (motif.extension.v1.message).component = 170;
+
+  // The resolved references.
+  // Empty if generation failed, so consumers do not accidentally use
+  // stale geometry produced from older input values.
+  repeated ReferenceGeometryEntry entries = 1;
+
+  // Whether generation of the reference geometries was successful.
+  ReferenceGeometryGenerationStatus generation_status = 2 [(buf.validate.field).enum.defined_only = true];
+}
+
+// Whether resolved ReferenceGeometry matches its current inputs.
+enum ReferenceGeometryGenerationStatus {
+  // No generation result has been recorded. Consumers should not use the entries.
+  REFERENCE_GEOMETRY_GENERATION_STATUS_UNSPECIFIED = 0;
+
+  // All declared reference geometries were successfully generated from the current inputs.
+  REFERENCE_GEOMETRY_GENERATION_STATUS_SUCCEEDED = 1;
+
+  // At least one declared reference geometry could not be generated.
+  REFERENCE_GEOMETRY_GENERATION_STATUS_FAILED = 2;
+}
+
+// One concrete reference resolved from a `ReferenceGeometryEntrySpec`.
+message ReferenceGeometryEntry {
+  // Stable identifier copied from the authored declaration.
+  uint32 id = 1 [(buf.validate.field).uint32.gt = 0];
+
+  // Optional human-readable name copied from the authored declaration.
+  optional string name = 2;
+
+  // Selection priority copied from the authored declaration.
+  int32 priority = 3;
+
+  // The resolved reference geometry.
+  oneof primitive {
+    option (buf.validate.oneof).required = true;
+
+    // A planar reference.
+    UnboundedPlane plane = 4;
+
+    // A cylindrical reference.
+    UnboundedCylinder cylinder = 5;
+  }
+}
+
+// Published mappings from logical asset parameters to concrete reference geometry pairs.
+// This derived component is separate from its authored spec, despite the two being virtually
+// identical. See the `ReferenceGeometryParameterMapSpec` comment for the rationale.
+message ReferenceGeometryParameterMap {
+  option (motif.extension.v1.message).component = 171;
+
+  // Parameter to reference mappings
+  // They may remain present while validity_status is INVALID due to the corresponding
+  // concrete reference geometry being unavailable.
+  repeated ReferenceGeometryParameterMapEntry entries = 1;
+
+  // Whether every mapping refers to a declared parameter and currently generated references.
+  ReferenceGeometryParameterMapValidityStatus validity_status = 2 [(buf.validate.field).enum.defined_only = true];
+}
+
+// One published mapping from a logical asset parameter to reference geometry.
+message ReferenceGeometryParameterMapEntry {
+  // The logical parameter name copied from the authored mapping.
+  string parameter_name = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The first reference geometry ID.
+  uint32 start_reference_id = 2 [(buf.validate.field).uint32.gt = 0];
+
+  // The second reference geometry ID.
+  uint32 end_reference_id = 3 [(buf.validate.field).uint32.gt = 0];
+
+  // How the parameter relates to the two references.
+  ReferenceGeometryParameterMappingKind kind = 4 [
+    (buf.validate.field).enum.defined_only = true,
+    (buf.validate.field).enum.not_in = 0
+  ];
+}
+
+// Whether the published parameter map is usable
+// It could be invalid for several reasons, such as if a mapping names an unsuitable
+// parameter, names an ID absent from ReferenceGeometrySpec, or its referenced
+// concrete geometry was not successfully generated.
+enum ReferenceGeometryParameterMapValidityStatus {
+  // No validation result has been recorded. Consumers should not use the entries.
+  REFERENCE_GEOMETRY_PARAMETER_MAP_VALIDITY_STATUS_UNSPECIFIED = 0;
+
+  // Every mapping refers to a declared parameter and currently generated references.
+  REFERENCE_GEOMETRY_PARAMETER_MAP_VALIDITY_STATUS_VALID = 1;
+
+  // The mappings cannot currently be used. Validated entries may remain available for inspection.
+  REFERENCE_GEOMETRY_PARAMETER_MAP_VALIDITY_STATUS_INVALID = 2;
+}
+
+// How a scalar parameter relates to a pair of reference geometries.
+enum ReferenceGeometryParameterMappingKind {
+  // No mapping kind specified. This is invalid for a mapping entry.
+  REFERENCE_GEOMETRY_PARAMETER_MAPPING_KIND_UNSPECIFIED = 0;
+
+  // A linear distance between two reference geometries.
+  REFERENCE_GEOMETRY_PARAMETER_MAPPING_KIND_LINEAR = 1;
+
+  // An angle between two reference geometries.
+  REFERENCE_GEOMETRY_PARAMETER_MAPPING_KIND_ANGULAR = 2;
+
+  // A radius or radial distance between two (cylindrical) reference geometries.
+  REFERENCE_GEOMETRY_PARAMETER_MAPPING_KIND_RADIAL = 3;
+}
+
+// A source that resolves to a two-dimensional curve.
+message Curve2Input {
+  // How the curve value is supplied.
+  oneof source {
+    option (buf.validate.oneof).required = true;
+
+    // Name in the current instance's resolved-parameter scope.
+    string parameter = 1;
+
+    // Direct reference to Curve2 data.
+    motif.extension.v1.DataReference data_ref = 2 [(motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.geometry.v1.Curve2"
+    }];
+  }
+}
+
+// A source that resolves to a three-dimensional coordinate system.
+//
+// When used to construct reference geometry, the coordinate-system value is
+// expressed in the local frame of the entity receiving `ReferenceGeometry`.
+message CoordinateSystem3Input {
+  // How the coordinate-system value is supplied.
+  oneof source {
+    option (buf.validate.oneof).required = true;
+
+    // Name in the current instance's resolved-parameter scope.
+    string parameter = 1;
+
+    // Direct reference to CoordinateSystem3 data.
+    motif.extension.v1.DataReference data_ref = 2 [(motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.geometry.v1.CoordinateSystem3"
+    }];
+  }
+}
+
+// An authored method for constructing a planar reference.
+// Every construction method produces a plane in the local frame of the entity
+// receiving the resolved `ReferenceGeometry`.
+message PlaneSpec {
+  // The supported plane construction methods.
+  oneof definition {
+    option (buf.validate.oneof).required = true;
+
+    // Construct a plane from an origin and normal.
+    PlaneUsingOriginNormalSpec origin_normal = 1;
+
+    // Construct a plane from a location and tangent on a curve.
+    PlaneUsingCurveLocationSpec using_curve_location = 2;
+
+    // Construct a plane parallel to a line at a signed perpendicular offset.
+    PlaneUsingLineOffsetSpec using_line_offset = 3;
+
+    // Construct a plane at a curve location, offset along a coordinate system's Z axis.
+    PlaneUsingCurveLocationZOffsetSpec using_curve_location_z_offset = 4;
+
+    // Construct a plane from an Isometry-relative origin and signed local-axis normal.
+    PlaneUsingIsometryLocalOffsetSpec using_isometry_local_offset = 5;
+  }
+}
+
+// Constructs a plane by evaluating its origin and normal coordinates.
+message PlaneUsingOriginNormalSpec {
+  // Plane-origin X coordinate.
+  ParametricExpression origin_x = 1 [(buf.validate.field).required = true];
+
+  // Plane-origin Y coordinate.
+  ParametricExpression origin_y = 2 [(buf.validate.field).required = true];
+
+  // Plane-origin Z coordinate.
+  ParametricExpression origin_z = 3 [(buf.validate.field).required = true];
+
+  // Plane-normal X component.
+  ParametricExpression normal_x = 4 [(buf.validate.field).required = true];
+
+  // Plane-normal Y component.
+  ParametricExpression normal_y = 5 [(buf.validate.field).required = true];
+
+  // Plane-normal Z component.
+  ParametricExpression normal_z = 6 [(buf.validate.field).required = true];
+}
+
+// Selects a stable location in a curve's parameter domain.
+message CurveLocationSpec {
+  // Locations that do not require an accompanying numeric value.
+  enum NamedLocation {
+    // Unspecified named location.
+    NAMED_LOCATION_UNSPECIFIED = 0;
+
+    // The start of the curve domain.
+    NAMED_LOCATION_START = 1;
+
+    // The end of the curve domain.
+    NAMED_LOCATION_END = 2;
+
+    // The midpoint of the curve domain.
+    NAMED_LOCATION_MIDPOINT = 3;
+  }
+
+  // Exactly one way of locating the point on the curve.
+  oneof location {
+    option (buf.validate.oneof).required = true;
+
+    // A platform-defined named location.
+    NamedLocation named_location = 1 [
+      (buf.validate.field).enum.defined_only = true,
+      (buf.validate.field).enum.not_in = 0
+    ];
+
+    // A normalized position across the curve's parameter domain, from 0 to 1.
+    double fractional_location = 2 [(buf.validate.field).double = {
+      gte: 0
+      lte: 1
+    }];
+  }
+}
+
+// Constructs a plane from a point and tangent evaluated on a `Curve2`.
+//
+// The curve is evaluated in its two-dimensional parameter space and lifted
+// into three dimensions by `coordinate_system`. The lifted point is the plane
+// origin. At the curve start, the plane normal opposes the lifted tangent; at
+// the curve end, it follows the lifted tangent. Midpoint and fractional
+// locations use the lifted tangent.
+message PlaneUsingCurveLocationSpec {
+  // The two-dimensional curve to evaluate.
+  Curve2Input curve = 1 [(buf.validate.field).required = true];
+
+  // The coordinate system that lifts the curve into three dimensions.
+  CoordinateSystem3Input coordinate_system = 2 [(buf.validate.field).required = true];
+
+  // Where to evaluate the curve.
+  CurveLocationSpec location = 3 [(buf.validate.field).required = true];
+}
+
+// Constructs a plane parallel to a line at a signed perpendicular offset.
+//
+// The line is evaluated in its two-dimensional parameter space. Its local
+// left perpendicular `(-dir.y, dir.x)` is used as the plane normal and offset
+// direction, then the resulting origin and normal are lifted into three
+// dimensions by `coordinate_system`.
+message PlaneUsingLineOffsetSpec {
+  // The two-dimensional line to offset. Other Curve2 variants are invalid.
+  Curve2Input curve = 1 [(buf.validate.field).required = true];
+
+  // The coordinate system that lifts the line into three dimensions.
+  CoordinateSystem3Input coordinate_system = 2 [(buf.validate.field).required = true];
+
+  // Signed perpendicular distance from the line.
+  ParametricExpression offset = 3 [(buf.validate.field).required = true];
+}
+
+// Constructs a plane centered at a location on a curve and offset along a
+// coordinate system's positive Z axis. The plane normal follows that Z axis.
+message PlaneUsingCurveLocationZOffsetSpec {
+  // Supported directions for the plane normal along the coordinate-system Z axis.
+  enum NormalDirection {
+    // Unspecified normal direction.
+    NORMAL_DIRECTION_UNSPECIFIED = 0;
+
+    // Normal follows the coordinate system's positive Z axis.
+    NORMAL_DIRECTION_POSITIVE_Z = 1;
+
+    // Normal follows the coordinate system's negative Z axis.
+    NORMAL_DIRECTION_NEGATIVE_Z = 2;
+  }
+
+  // The two-dimensional curve on which to choose the plane origin.
+  Curve2Input curve = 1 [(buf.validate.field).required = true];
+
+  // The coordinate system that lifts the curve into three dimensions.
+  CoordinateSystem3Input coordinate_system = 2 [(buf.validate.field).required = true];
+
+  // Where to evaluate the curve.
+  CurveLocationSpec location = 3 [(buf.validate.field).required = true];
+
+  // Signed distance from the lifted curve point along the positive Z axis.
+  ParametricExpression z_offset = 4 [(buf.validate.field).required = true];
+
+  // Direction of the plane normal along the coordinate-system Z axis.
+  NormalDirection normal_direction = 5 [
+    (buf.validate.field).enum.defined_only = true,
+    (buf.validate.field).enum.not_in = 0
+  ];
+}
+
+// Constructs a plane by offsetting an Isometry's origin in its local frame.
+message PlaneUsingIsometryLocalOffsetSpec {
+  // Supported signed local axes for the plane normal.
+  enum NormalDirection {
+    // Plane normal direction not specified. This is invalid.
+    NORMAL_DIRECTION_UNSPECIFIED = 0;
+
+    // Plane normal aligns with positive X in the local coordinate frame.
+    NORMAL_DIRECTION_POSITIVE_X = 1;
+
+    // Plane normal aligns with negative X in the local coordinate frame.
+    NORMAL_DIRECTION_NEGATIVE_X = 2;
+
+    // Plane normal aligns with positive Y in the local coordinate frame.
+    NORMAL_DIRECTION_POSITIVE_Y = 3;
+
+    // Plane normal aligns with negative Y in the local coordinate frame.
+    NORMAL_DIRECTION_NEGATIVE_Y = 4;
+
+    // Plane normal aligns with positive Z in the local coordinate frame.
+    NORMAL_DIRECTION_POSITIVE_Z = 5;
+
+    // Plane normal aligns with negative Z in the local coordinate frame.
+    NORMAL_DIRECTION_NEGATIVE_Z = 6;
+  }
+
+  // Placement whose translation and rotation define the local frame.
+  motif.extension.v1.DataReference isometry = 1 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.core.v1.Isometry"
+    }
+  ];
+
+  // Signed local X offset from the Isometry origin.
+  ParametricExpression local_offset_x = 2 [(buf.validate.field).required = true];
+
+  // Signed local Y offset from the Isometry origin.
+  ParametricExpression local_offset_y = 3 [(buf.validate.field).required = true];
+
+  // Signed local Z offset from the Isometry origin.
+  ParametricExpression local_offset_z = 4 [(buf.validate.field).required = true];
+
+  // Direction of the plane normal in the Isometry's local frame.
+  NormalDirection normal_direction = 5 [
+    (buf.validate.field).enum.defined_only = true,
+    (buf.validate.field).enum.not_in = 0
+  ];
+}
+
+// An authored method for constructing a cylindrical reference.
+// Every construction method produces a cylinder in the local frame of the entity
+// receiving the resolved `ReferenceGeometry`.
+message CylinderSpec {
+  // The supported cylinder construction methods.
+  oneof definition {
+    option (buf.validate.oneof).required = true;
+
+    // Construct a cylinder from a circular curve and radius offset.
+    CylinderUsingCurveRadiusSpec using_curve_radius = 1;
+  }
+}
+
+// Constructs a cylinder from a circular `Curve2`.
+//
+// The curve center is lifted into three dimensions by `coordinate_system`, the
+// coordinate system's Z axis becomes the cylinder axis, and `radius_offset` is
+// added to the curve's radius.
+message CylinderUsingCurveRadiusSpec {
+  // The circular two-dimensional curve.
+  Curve2Input curve = 1 [(buf.validate.field).required = true];
+
+  // The coordinate system that lifts the curve into three dimensions.
+  CoordinateSystem3Input coordinate_system = 2 [(buf.validate.field).required = true];
+
+  // Value added to the circular curve's radius.
+  ParametricExpression radius_offset = 3 [(buf.validate.field).required = true];
+}
+
+// A concrete unbounded planar reference.
+message UnboundedPlane {
+  // A point on the plane.
+  motif.data.geometry.v1.Point3 origin = 1 [(buf.validate.field).required = true];
+
+  // The plane's normal.
+  motif.data.geometry.v1.UnitVector3 normal = 2 [(buf.validate.field).required = true];
+}
+
+// A concrete unbounded cylindrical reference.
+message UnboundedCylinder {
+  // A point on the cylinder axis.
+  motif.data.geometry.v1.Point3 origin = 1 [(buf.validate.field).required = true];
+
+  // The cylinder axis.
+  motif.data.geometry.v1.UnitVector3 axis = 2 [(buf.validate.field).required = true];
+
+  // The cylinder radius.
+  double radius = 3 [(buf.validate.field).double.gt = 0];
 }
