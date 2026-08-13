@@ -772,6 +772,18 @@ message TrimmedHostingSurface {
       type_name: "motif.data.geometry.v1.CoordinateSystem3"
     }
   ];
+
+  // The host's spine, by value, so a reader can resolve placements on this
+  // surface without resolving `curve`.
+  //
+  // Same lifecycle as `surface`: written when the host is placed, rewritten when
+  // its geometry changes. Absent on a surface written before these fields
+  // existed; readers fall back to `surface`.
+  motif.data.geometry.v1.Curve2 spine_curve = 5;
+
+  // The coordinate system that lifts `spine_curve` into world space. Carries by
+  // value what `coordinate_system` addresses by reference; see `spine_curve`.
+  motif.data.geometry.v1.CoordinateSystem3 spine_coordinate_system = 6;
 }
 
 // A behavior which identifies an entity as a host for other hosted entities.
