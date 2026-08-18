@@ -64,6 +64,20 @@ message ParameterDeclaration {
   // TYPE_DOUBLE). Not read by change propagation; instance bindings supply CP
   // values at placement.
   optional google.protobuf.Any default_value = 4;
+
+  // The closed, ordered set of permitted values for a TYPE_STRING parameter.
+  // Empty when the parameter has no fixed choice set.
+  repeated ParameterChoice choices = 5;
+}
+
+// One option in a TYPE_STRING parameter's closed choice set.
+message ParameterChoice {
+  // The canonical stored value. Non-empty: an unset TYPE_STRING parameter resolves to
+  // the empty string, so an empty choice value would be indistinguishable from "nothing
+  // selected" and would match `ParametricSelect.cases[""]`.
+  string value = 1 [(buf.validate.field).string.min_len = 1];
+  // The human-readable label for this value.
+  string label = 2;
 }
 
 // The map of resolved parameters.
@@ -91,6 +105,13 @@ message ResolvedParameters {
 // Change-propagation parameter bindings accept `binding` but reject `parameter`.
 // Built-in asset geometry configurations accept `parameter` but reject `binding`.
 // Reference geometry specifications accept both `parameter` and `binding`.
+// Geometry2d construction accepts both `parameter` and `binding`.
+//
+// `select` resolves a name in the evaluation scope (its `parameter` discriminant),
+// like the `parameter` leaf, but acceptance is decided per-leaf and is not inherited
+// from `parameter`: only Geometry2d construction accepts `select`. Built-in asset
+// configurations, reference geometry specifications, and change-propagation parameter
+// bindings all reject it at decode.
 message ParametricExpression {
   // The expression node.
   oneof node {
@@ -111,7 +132,28 @@ message ParametricExpression {
 
     // A conditional selecting between two sub-expressions.
     ParametricConditional conditional = 6;
+
+    // A sub-expression selected by a choice parameter's text value.
+    ParametricSelect select = 7;
   }
+}
+
+// A sub-expression chosen by the text value of a `TYPE_STRING` parameter.
+// Evaluation picks the case matching the parameter's value, or `fallback`
+// when none matches (failing the evaluation when `fallback` is unset).
+message ParametricSelect {
+  // Name of the `TYPE_STRING` parameter supplying the discriminant. A name (not a
+  // `DataReference`) keeps the discriminant tied to the parameter's declaration, so a
+  // consumer can validate `cases` against the declared choices at decode. A pointer
+  // discriminant (for binding-time or cross-scope branching) could be added later as an
+  // additive alternative field without changing this one.
+  string parameter = 1 [(buf.validate.field).string.min_len = 1];
+
+  // The sub-expression evaluated for each value.
+  map<string, ParametricExpression> cases = 2 [(buf.validate.field).map.min_pairs = 1];
+
+  // Evaluated when the parameter's value matches no case.
+  optional ParametricExpression fallback = 3;
 }
 
 // A binary arithmetic operation applied to two sub-expressions.
@@ -405,9 +447,10 @@ message BuiltinAssetConfiguration {
   repeated Part parts = 2;
 
   // Scalar expressions over named parameters use the shared
-  // `ParametricExpression` (its `parameter`/`literal`/`binary_op`/`neg`/
-  // `conditional` leaves); the `binding` (`DataReference`) leaf is rejected here
-  // at decode.
+  // `ParametricExpression`. Built-in asset configurations accept its
+  // `literal`/`parameter`/`binary_op`/`neg` leaves; the `binding`
+  // (`DataReference`), `conditional`, and `select` leaves are rejected here at
+  // decode.
 
   // A 2D point whose coordinates are parametric expressions.
   message Point2Expr {
@@ -1471,4 +1514,200 @@ message UnboundedCylinder {
 
   // The cylinder radius.
   double radius = 3 [(buf.validate.field).double.gt = 0];
+}
+
+// Authored recipe for an asset's derived 2D drawing geometry (`Geometry2d`).
+// Each entry names one group of curves and either references existing curve
+// data or constructs curves from the asset's resolved parameters.
+message Geometry2dBehavior {
+  option (motif.extension.v1.message).component = 175;
+
+  // The authored entries. Names must be unique within this component; they
+  // become the `Geometry2d.entries` map keys and must remain stable across
+  // compatible recipe revisions. Uniqueness is not validated: on a name collision
+  // the derived `map` keeps the last entry with that name and drops the earlier one
+  // (and, since priority ties break by name, the survivor's draw order stays defined).
+  repeated Geometry2dEntrySpec entries = 1 [(buf.validate.field).repeated.min_items = 1];
+}
+
+// One authored `Geometry2d` entry.
+message Geometry2dEntrySpec {
+  // Stable entry name; the `Geometry2d.entries` map key.
+  string name = 1 [(buf.validate.field).string.min_len = 1];
+
+  // Visibility-policy classification of the produced curves. A type-less entry is
+  // rejected: `defined_only` alone still admits `UNSPECIFIED` (0), so `not_in` excludes it.
+  Geometry2dEntryType type = 2 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+
+  // Draw order within the 2D drawing layer. Larger values draw on top. Ties
+  // are broken by entry name so rendering never depends on map iteration
+  // order.
+  uint32 priority = 3;
+
+  // Where the entry's curves come from.
+  oneof source {
+    option (buf.validate.oneof).required = true;
+
+    // Existing curve data, such as a literal `Curve2List` parameter value.
+    motif.extension.v1.DataReference curves = 4 [(motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.geometry.v1.Curve2List"
+    }];
+
+    // Curves constructed from resolved parameters.
+    Geometry2dConstruction construction = 5;
+  }
+}
+
+// An authored construction producing one entry's curves and the local frame
+// they live in.
+message Geometry2dConstruction {
+  // The frame the constructed 2D curves are expressed in.
+  Geometry2dFrame frame = 1 [(buf.validate.field).required = true];
+
+  // The constructed curves, in construction order.
+  repeated Geometry2dCurveConstruction curves = 2 [(buf.validate.field).repeated.min_items = 1];
+}
+
+// How an entry's local 2D frame is derived.
+message Geometry2dFrame {
+  oneof source {
+    option (buf.validate.oneof).required = true;
+
+    // A frame in the owning asset's own coordinate system; each component is a
+    // `ParametricExpression`, so it follows the resolved parameters and never
+    // references a placement. A oneof (rather than a bare field) leaves room for
+    // additional frame sources — e.g. a placement-projected plan frame — when a
+    // consumer needs one.
+    Geometry2dLocalFrame local = 1;
+  }
+}
+
+// Three parametric expressions, used either as a point (a location) or as a
+// direction. A direction is normalized at construction, so it need not evaluate
+// to a unit vector.
+message Vec3Expr {
+  ParametricExpression x = 1 [(buf.validate.field).required = true];
+  ParametricExpression y = 2 [(buf.validate.field).required = true];
+  ParametricExpression z = 3 [(buf.validate.field).required = true];
+}
+
+// An owner-local frame built from parametric expressions (see `Geometry2dFrame`).
+// The 2D curves live in the plane through `origin` spanned by `x_axis` and
+// `z_axis × x_axis`; `z_axis` is the drawing plane's normal. The axes are
+// direction vectors normalized at construction — they need not evaluate to unit
+// vectors — so a frame may follow the resolved parameters; construction fails
+// only when an axis evaluates to a degenerate (near-zero) vector. (They are
+// expression `Vec3Expr`s rather than the literal `UnitVector3`s of
+// `BuiltinAssetConfiguration.FrameExpr`, which deliberately forbids
+// parameter-dependent axes.)
+message Geometry2dLocalFrame {
+  Vec3Expr origin = 1 [(buf.validate.field).required = true];
+  Vec3Expr x_axis = 2 [(buf.validate.field).required = true];
+  Vec3Expr z_axis = 3 [(buf.validate.field).required = true];
+}
+
+// One constructed 2D curve. Every scalar is a `ParametricExpression`, so the
+// curve follows the instance's resolved parameters.
+message Geometry2dCurveConstruction {
+  oneof kind {
+    option (buf.validate.oneof).required = true;
+
+    // A line segment.
+    Line2Construction line = 1;
+
+    // A circular arc.
+    Arc2Construction arc = 2;
+  }
+}
+
+// A line segment between two expression-valued endpoints, in the entry frame.
+message Line2Construction {
+  ParametricExpression start_x = 1 [(buf.validate.field).required = true];
+  ParametricExpression start_y = 2 [(buf.validate.field).required = true];
+  ParametricExpression end_x = 3 [(buf.validate.field).required = true];
+  ParametricExpression end_y = 4 [(buf.validate.field).required = true];
+}
+
+// A circular arc from expression-valued center, radius, and angles, in the
+// entry frame. Angles are radians from the frame's +X axis; the arc sweeps
+// from `start_angle` by `sweep_angle` (counterclockwise when positive), so a
+// parameter-selected sign flips the sweep direction.
+message Arc2Construction {
+  ParametricExpression center_x = 1 [(buf.validate.field).required = true];
+  ParametricExpression center_y = 2 [(buf.validate.field).required = true];
+  ParametricExpression radius = 3 [(buf.validate.field).required = true];
+  ParametricExpression start_angle = 4 [(buf.validate.field).required = true];
+  ParametricExpression sweep_angle = 5 [(buf.validate.field).required = true];
+}
+
+// Derived 2D drawing geometry produced from an asset's `Geometry2dBehavior`.
+// Curves are display linework, not solid model geometry. Entries are keyed by
+// the authored entry name; draw order is the entries' `priority`, not map
+// iteration or encoding order.
+message Geometry2d {
+  option (motif.extension.v1.message).component = 176;
+
+  // The derived entries, keyed by the authored entry name. Written only after the
+  // behavior derives, so the component's presence with an empty map means the recipe
+  // produced no entries — not "derivation pending"; per-entry `status` then
+  // distinguishes a failed entry from a succeeded one.
+  map<string, Geometry2dEntry> entries = 1;
+}
+
+// One derived `Geometry2d` entry.
+message Geometry2dEntry {
+  // Visibility-policy classification copied from the authored entry.
+  Geometry2dEntryType type = 1 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+
+  // Draw order copied from the authored entry.
+  uint32 priority = 2;
+
+  // Whether this entry's curves were generated from the current inputs.
+  // `curves` is empty unless the status is SUCCEEDED, so consumers never use
+  // stale geometry produced from older input values.
+  Geometry2dEntryStatus status = 3 [(buf.validate.field).enum.defined_only = true];
+
+  // The local frame the 2D curves are expressed in, relative to the owning
+  // entity. World placement is the owner's transform composed with this frame.
+  // Present whenever `status` is SUCCEEDED (it always accompanies the curves) and
+  // absent otherwise; a consumer must not draw a non-SUCCEEDED entry, so it never
+  // composes an absent (degenerate, zero-axis) frame.
+  motif.data.geometry.v1.CoordinateSystem3 frame = 4;
+
+  // The drawable geometry.
+  oneof primitive {
+    // Curves (open or closed), drawn as linework.
+    motif.data.geometry.v1.Curve2List curves = 5;
+  }
+}
+
+// Visibility-policy classification for `Geometry2d` entries.
+enum Geometry2dEntryType {
+  // Unspecified; consumers must not draw the entry.
+  GEOMETRY2D_ENTRY_TYPE_UNSPECIFIED = 0;
+
+  // Drafting/symbolic linework.
+  GEOMETRY2D_ENTRY_TYPE_DETAIL = 1;
+
+  // Model linework present in the model space.
+  GEOMETRY2D_ENTRY_TYPE_MODEL = 2;
+}
+
+// Whether a derived `Geometry2d` entry matches its current inputs.
+enum Geometry2dEntryStatus {
+  // No generation result recorded; consumers must not use the entry.
+  GEOMETRY2D_ENTRY_STATUS_UNSPECIFIED = 0;
+
+  // The entry was generated from the current inputs.
+  GEOMETRY2D_ENTRY_STATUS_SUCCEEDED = 1;
+
+  // The entry could not be generated; `curves` is empty.
+  GEOMETRY2D_ENTRY_STATUS_FAILED = 2;
 }
