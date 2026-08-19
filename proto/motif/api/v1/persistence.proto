@@ -374,6 +374,9 @@ message ChangesetResponse {
 
     // Model version current on the server when the conflict was detected.
     int32 server_version = 2;
+
+    // User ID that authored the conflicting write.
+    bytes conflicting_user_id = 3;
   }
 
   // Explains why a syntactically valid changeset was not committed.
