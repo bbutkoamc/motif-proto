@@ -15,3 +15,8 @@ breaking:
   use:
     - FILE
     - MOTIF
+  # LOCAL-ONLY (mkumar/reference-parameters-on-map): the temporary package's entries-map
+  # restructuring (already on the gautamp base) is breaking vs origin/main by design; the
+  # local-motif-proto enable flow runs `buf breaking --against origin/main` and must pass.
+  ignore:
+    - proto/motif/data/temporary/v1/temporary.proto
