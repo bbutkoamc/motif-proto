@@ -875,6 +875,21 @@ message HostedBehavior {
   // Unset, or false, leaves the element facing the way the host's frame implies, which is
   // what every element placed before this field did.
   motif.extension.v1.DataReference facing_flip = 4 [(motif.extension.v1.field).data_reference_expected_type = {kind: TYPE_BOOL}];
+
+  // Which of THIS element's own ReferenceGeometry entries is the face it mates to the host.
+  //
+  // The persisted counterpart of `host_surface`, on the element's side: it names the element's own
+  // `ReferenceGeometry` (target = this entity) and, in the path, the entry that is its mating face.
+  // Each entry is its own resolvable slot, so this binds directly to the face.
+  //
+  // Optional. Unset means the element names no mating face and is placed by its own local origin —
+  // the placement every hosted opening had before mating existed.
+  motif.extension.v1.DataReference mating_reference = 5 [
+    (motif.extension.v1.field).data_reference_expected_type = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.temporary.v1.ReferenceGeometry"
+    }
+  ];
 }
 
 // A behavior which subtracts one profile solid from a target geometry.
