@@ -884,12 +884,10 @@ message HostedBehavior {
   //
   // Optional. Unset means the element names no mating face and is placed by its own local origin —
   // the placement every hosted opening had before mating existed.
-  motif.extension.v1.DataReference mating_reference = 5 [
-    (motif.extension.v1.field).data_reference_expected_type = {
-      kind: TYPE_MESSAGE
-      type_name: "motif.data.temporary.v1.ReferenceGeometry"
-    }
-  ];
+  motif.extension.v1.DataReference mating_reference = 5 [(motif.extension.v1.field).data_reference_expected_type = {
+    kind: TYPE_MESSAGE
+    type_name: "motif.data.temporary.v1.ReferenceGeometry"
+  }];
 }
 
 // A behavior which subtracts one profile solid from a target geometry.
