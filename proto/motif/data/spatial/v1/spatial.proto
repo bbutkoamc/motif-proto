@@ -37,8 +37,9 @@ message SpatialBoundary2D {
   // Maps loop/curve indexes to the elements that bound them.
   repeated BoundarySegmentReference segment_references = 2;
 
-  // Ordered closed boundary loops in level-local UV meters. Loop 0 is the
-  // exterior; loops 1..N are holes.
+  // Ordered closed boundary loops in level-local UV meters. Same ring order
+  // as `motif.data.geometry.v1.ClosedRegion2D`: loop 0 is the exterior,
+  // loops 1..N are holes.
   repeated motif.data.geometry.v1.Curve2List loops = 3;
 }
 

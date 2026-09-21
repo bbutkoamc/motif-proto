@@ -5,6 +5,7 @@ syntax = "proto3";
 // types and are not themselves components.
 package motif.data.geometry.v1;
 
+import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 
 // A point in two-dimensional space.
@@ -180,11 +181,35 @@ message Size2 {
   double height = 2;
 }
 
-// Closed boundary profile as an ordered sequence of line segments in
-// workplane-local coordinates. Each segment is a `Curve2` line; consecutive
-// segments share endpoints and the last segment connects back to the first.
+// Closed boundary profile as an ordered sequence of `Curve2` segments in
+// workplane-local coordinates. Consecutive segments share endpoints and the
+// last segment connects back to the first. One list is one loop.
 message Curve2List {
   repeated Curve2 curves = 1;
+}
+
+// A planar region: one outer loop and zero or more interior loops (holes).
+//
+// Loop 0 is the exterior. Loops 1..N are holes (OGC Polygon order). Each loop
+// is a closed `Curve2List` (lines, arcs, ellipses, NURBS), not a polyline-only
+// ring. Interior loops wind opposite the exterior (CW holes if the outer is
+// CCW). Proto does not check winding or that segments close; consumers must
+// refuse an open loop. A single-loop region is an outer with no holes
+// (today's floor, ceiling, and roof). Not a component; used as a parameter /
+// DataReference value. Not a MultiPolygon: one outer, not several islands.
+message ClosedRegion2D {
+  // Ordered closed loops. Index 0 is the exterior; later indexes are holes.
+  // At least one loop is required, and each loop has at least one curve.
+  repeated Curve2List loops = 1 [(buf.validate.field).repeated = {
+    min_items: 1
+    items: {
+      cel: {
+        id: "closed_region_loop_nonempty"
+        message: "each loop must contain at least one curve"
+        expression: "size(this.curves) > 0"
+      }
+    }
+  }];
 }
 
 // A planar surface in three-dimensional space.
