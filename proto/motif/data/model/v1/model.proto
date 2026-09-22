@@ -1266,10 +1266,10 @@ message CutGeometryBehavior {
 // Extrudes a closed boundary profile perpendicular to a workplane.
 //
 // Regeneration reads the workplane coordinate system, a `ClosedRegion2D`
-// profile in workplane-local coordinates (outer loop plus optional holes;
-// holes wind opposite the outer), and `thickness`, builds a planar face from
-// those wires, and extrudes it along ± the workplane normal (sign baked on
-// the asset via `extrude_along_workplane_normal`). The solid is written to
+// profile in workplane-local coordinates (one exterior plus optional holes;
+// holes wind opposite the exterior), and `thickness`, builds a planar face
+// from those wires, and extrudes it along ± the workplane normal (sign baked
+// on the asset via `extrude_along_workplane_normal`). The solid is written to
 // the `output` entity as a `Shape`. Consumers must refuse an empty or open
 // loop.
 message ExtrudeBoundaryProfileBehavior {
@@ -1284,9 +1284,9 @@ message ExtrudeBoundaryProfileBehavior {
     }
   ];
 
-  // Closed region: outer loop plus optional interior loops (holes). Each loop
-  // is a nonempty `Curve2List` of workplane-local `Curve2` segments. Holes
-  // wind opposite the outer.
+  // Closed region: one nonempty exterior `Curve2List` plus optional interior
+  // holes, each a nonempty `Curve2List` of workplane-local `Curve2` segments.
+  // Holes wind opposite the exterior.
   motif.extension.v1.DataReference profile = 2 [
     (buf.validate.field).required = true,
     (motif.extension.v1.field).data_reference_expected_type = {
