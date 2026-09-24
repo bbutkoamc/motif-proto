@@ -5,6 +5,7 @@ package motif.api.v1;
 import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
+import "motif/data/external/v1/categories.proto";
 
 // The persistence service stores model state and changeset history.
 //
@@ -301,6 +302,101 @@ message ChangesetListItem {
   // Classifies whether the created changeset's and concurrent changes touched
   // the same entities. Certain race conditions will be rejected by the server.
   ChangesetRace race = 6;
+
+  // <add>Aggregated semantic history for each applicable stage. The client stage is
+  // always present when summaries are available; the derived stage is also present
+  // exactly when has_derived is true. Missing semantic history leaves this field
+  // empty and does not synthesize a pending summary.
+  message StageSummary {
+    // The durable stage described. Only STAGE_CLIENT and STAGE_DERIVED are valid.
+    Stage stage = 1 [(buf.validate.field).enum = {
+      defined_only: true
+      not_in: [
+        0,
+        127
+      ]
+    }];
+
+    // A state backed by an actual semantic-history row. PENDING has no count rows;
+    // COMPLETE may have no rows for a no-op stage; FAILED has no count rows or
+    // public failure detail. Consumers must treat unknown future values as unknown,
+    // never as COMPLETE.
+    enum State {
+      STATE_UNSPECIFIED = 0;
+      STATE_PENDING = 1;
+      STATE_COMPLETE = 2;
+      STATE_FAILED = 3;
+    }
+
+    State state = 2 [(buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    }];
+
+    option (buf.validate.message).cel = {
+      id: "changeset_list_item.stage_summary.state_requires_empty_counts"
+      message: "change_counts must be empty unless state is STATE_COMPLETE"
+      expression: "this.state == 2 || this.change_counts.size() == 0"
+    };
+
+    option (buf.validate.message).cel = {
+      id: "changeset_list_item.stage_summary.unique_change_counts"
+      message: "change_counts must be unique by verb and category"
+      expression: "this.change_counts.all(row, this.change_counts.filter(candidate, candidate.verb == row.verb && ((has(candidate.revit_category) && has(row.revit_category) && candidate.revit_category == row.revit_category) || (has(candidate.category_fallback) && has(row.category_fallback) && candidate.category_fallback == row.category_fallback))).size() == 1)"
+    };
+
+    // Rows are unique by (verb, category arm and value). Servers emit them
+    // deterministically by verb number, then category field number, then category
+    // value; clients treat this repeated field as an unordered set.
+    repeated StageChangeCount change_counts = 3;
+  }
+
+  // A count of distinct affected entities in one verb/category bucket.
+  message StageChangeCount {
+    enum Verb {
+      VERB_UNSPECIFIED = 0;
+      VERB_CREATE = 1;
+      VERB_UPDATE = 2;
+      VERB_DELETE = 3;
+    }
+
+    // OTHER means all required facts were available but no category resolved.
+    // UNAVAILABLE means facts required for resolution could not be obtained.
+    enum CategoryFallback {
+      CATEGORY_FALLBACK_UNSPECIFIED = 0;
+      CATEGORY_FALLBACK_OTHER = 1;
+      CATEGORY_FALLBACK_UNAVAILABLE = 2;
+    }
+
+    Verb verb = 1 [(buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    }];
+    uint32 count = 2 [(buf.validate.field).uint32.gt = 0];
+    oneof category {
+      option (buf.validate.oneof).required = true;
+
+      motif.data.external.v1.RevitCategory revit_category = 3 [(buf.validate.field).enum = {
+        defined_only: true
+        not_in: [0]
+      }];
+      CategoryFallback category_fallback = 4 [(buf.validate.field).enum = {
+        defined_only: true
+        not_in: [0]
+      }];
+    }
+  }
+
+  option (buf.validate.message).cel = {
+    id: "changeset_list_item.stage_summaries_match_applicable_stages"
+    message: "stage_summaries must contain every applicable stage"
+    expression: "this.stage_summaries.size() == 0 || (this.stage_summaries.filter(summary, summary.stage == 10).size() == 1 && (this.has_derived ? this.stage_summaries.filter(summary, summary.stage == 69).size() == 1 : this.stage_summaries.filter(summary, summary.stage == 69).size() == 0) && (this.stage_summaries.size() < 2 || this.stage_summaries[0].stage < this.stage_summaries[1].stage))"
+  };
+
+  // One client summary and, when has_derived is true, one derived summary in stage
+  // number order. These additive fields do not change ChangesetListItem or page order.
+  repeated StageSummary stage_summaries = 7 [(buf.validate.field).repeated.max_items = 2];
+  // </add>
 }
 
 // Changeset history page for a model.

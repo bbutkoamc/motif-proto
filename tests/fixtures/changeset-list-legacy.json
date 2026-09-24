@@ -1,0 +1,13 @@
+{
+  "changesets": [
+    {
+      "version": 42,
+      "authorId": "AQEBAQEBAQEBAQEBAQEBAQ==",
+      "createdAt": "2026-09-24T00:00:00Z",
+      "hasDerived": true,
+      "revertedToVersion": 37,
+      "race": "RACE_POSSIBLE"
+    }
+  ],
+  "hasMore": true
+}

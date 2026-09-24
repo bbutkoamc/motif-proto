@@ -1,0 +1,78 @@
+{
+  "changesets": [
+    {
+      "version": 1,
+      "hasDerived": true
+    },
+    {
+      "version": 2,
+      "hasDerived": true,
+      "stageSummaries": [
+        {
+          "stage": "STAGE_CLIENT",
+          "state": "STATE_PENDING"
+        },
+        {
+          "stage": "STAGE_DERIVED",
+          "state": "STATE_PENDING"
+        }
+      ]
+    },
+    {
+      "version": 3,
+      "hasDerived": true,
+      "stageSummaries": [
+        {
+          "stage": "STAGE_CLIENT",
+          "state": "STATE_FAILED"
+        },
+        {
+          "stage": "STAGE_DERIVED",
+          "state": "STATE_FAILED"
+        }
+      ]
+    },
+    {
+      "version": 4,
+      "hasDerived": true,
+      "stageSummaries": [
+        {
+          "stage": "STAGE_CLIENT",
+          "state": "STATE_COMPLETE"
+        },
+        {
+          "stage": "STAGE_DERIVED",
+          "state": "STATE_COMPLETE"
+        }
+      ]
+    },
+    {
+      "version": 5,
+      "hasDerived": false,
+      "stageSummaries": [
+        {
+          "stage": "STAGE_CLIENT",
+          "state": "STATE_COMPLETE",
+          "changeCounts": [
+            {
+              "verb": "VERB_CREATE",
+              "count": 3,
+              "revitCategory": "REVIT_CATEGORY_WALLS"
+            },
+            {
+              "verb": "VERB_UPDATE",
+              "count": 1,
+              "categoryFallback": "CATEGORY_FALLBACK_OTHER"
+            },
+            {
+              "verb": "VERB_DELETE",
+              "count": 2,
+              "categoryFallback": "CATEGORY_FALLBACK_UNAVAILABLE"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "hasMore": false
+}
