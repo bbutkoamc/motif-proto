@@ -311,9 +311,9 @@ message ChangesetListItem {
     // The durable stage described. Only STAGE_CLIENT and STAGE_DERIVED are valid.
     Stage stage = 1 [(buf.validate.field).enum = {
       defined_only: true
-      not_in: [
-        0,
-        127
+      in: [
+        10,
+        69
       ]
     }];
 

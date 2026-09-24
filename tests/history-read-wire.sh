@@ -65,6 +65,10 @@ jq 'del(.changesets[1].stageSummaries[1])' \
   "$fixture_dir/changeset-list-semantic-states.json" > "$scratch/missing-applicable-stage.json"
 expect_invalid "$scratch/missing-applicable-stage.json"
 
+jq '.changesets[1].stageSummaries[0].stage = "STAGE_VERSION_BEGIN"' \
+  "$fixture_dir/changeset-list-semantic-states.json" > "$scratch/boundary-stage.json"
+expect_invalid "$scratch/boundary-stage.json"
+
 jq '.changesets[4].stageSummaries[0].changeCounts += [.changesets[4].stageSummaries[0].changeCounts[0]]' \
   "$fixture_dir/changeset-list-semantic-states.json" > "$scratch/duplicate-category-bucket.json"
 expect_invalid "$scratch/duplicate-category-bucket.json"
