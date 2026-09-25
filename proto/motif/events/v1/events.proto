@@ -451,6 +451,7 @@ message ProjectContent {
 
   oneof action {
     ProjectRenamed renamed = 10;
+    HistoryEnrichmentFinished history_enrichment_finished = 11;
   }
 }
 
@@ -534,6 +535,27 @@ message ProjectRenamed {
 
   // The user who triggered the event, when known.
   optional bytes actor_user_id = 2 [(buf.validate.field).bytes.len = 16];
+}
+
+// Semantic history enrichment for one committed model version reached a
+// terminal state. This notification signals clients to refetch authorized
+// history; it does not carry the result body.
+message HistoryEnrichmentFinished {
+  bytes model_id = 1 [(buf.validate.field).bytes.len = 16];
+  int32 version = 2 [(buf.validate.field).int32.gt = 0];
+
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_PENDING = 1;
+    STATUS_COMPLETE = 2;
+    STATUS_FAILED = 3;
+  }
+
+  // PENDING is retained for wire compatibility. Producers publish only
+  // terminal COMPLETE or FAILED events.
+  Status status = 4 [(buf.validate.field).enum = {
+    not_in: [0]
+  }];
 }
 
 // A project stopped being visible to the recipient: deleted, or the recipient's
