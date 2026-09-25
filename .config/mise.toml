@@ -29,3 +29,7 @@ run = [
   "taplo fmt --check",
   "mise run check-id-gaps",
 ]
+
+[tasks.test]
+description = "Check history wire compatibility, shared payload validation and size"
+run = ["sh tests/history-read-wire.sh", "sh tests/history-shared-wire.sh"]
