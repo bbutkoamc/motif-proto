@@ -167,7 +167,71 @@ message AnalyticalAssetConfiguration {
       CurveExpr curve = 3;
       // A surface.
       SurfaceExpr surface = 4;
+      // A frame (right-handed orthonormal coordinate system).
+      FrameNodeExpr frame = 5;
+      // A generator rather than a value: emits parts once per index.
+      RepeatExpr repeat = 6;
     }
+  }
+
+  // A frame as a value: the thing a section is authored in once and then
+  // placed on every station of a curve.
+  message FrameNodeExpr {
+    // The frame kind.
+    oneof frame {
+      // An expression origin with literal axes.
+      FrameExpr literal = 1;
+      // A named `frame` entry.
+      GeometryRef ref = 2;
+      // The frame at a station of a curve.
+      FrameAtExpr at_curve = 3;
+    }
+  }
+
+  // The frame at station `t` of `curve`. Axis convention: `z` is the tangent
+  // (direction of travel; a displacement along it leaves the section plane),
+  // `y` is section-vertical (the component of `up` perpendicular to the
+  // tangent), `x = y × z` is section-horizontal. Evaluation fails where the
+  // tangent is parallel to `up`.
+  message FrameAtExpr {
+    // The curve carrying the station.
+    CurveExpr curve = 1;
+    // Station parameter: the curve's own domain (meters of arc length), or a
+    // `[0, 1]` fraction of it when `normalized` is set.
+    Expr t = 2;
+    // Interpret `t` as a normalized `[0, 1]` fraction of the domain.
+    bool normalized = 3;
+    // The up direction the section-vertical axis follows; `+Z` when unset.
+    motif.data.geometry.v1.UnitVector3 up = 4;
+  }
+
+  // Count-driven repetition. Evaluates `parts` once per index `i` in
+  // `0..count`, with `index` bound to `i` (and `parity` to `i mod 2` when set)
+  // as scalars, and `geometry` resolved per iteration on top of the
+  // configuration's named geometry. Emitted parts are named
+  // `"{part.name}[{i}]"` and follow all fixed parts, in repeat-entry key order.
+  //
+  // `count` is a number of stations: on a closed plan `t = i / count` gives
+  // `count` sections and `count` bays (the last closing back to station 0); on
+  // an open plan `t = i / (count − 1)` includes both endpoints and the bay
+  // repeat's count is `count − 1`. `count` must evaluate to a finite
+  // non-negative integer. `index`, `parity`, and the local entry names must be
+  // distinct and must not shadow a parameter or configuration-level entry;
+  // a local entry may not itself be a repeat.
+  message RepeatExpr {
+    // Number of iterations.
+    Expr count = 1;
+    // Scalar name bound to the iteration index.
+    string index = 2;
+    // Scalar name bound to `index mod 2`, for alternating recipes.
+    optional string parity = 3;
+    // Permit an odd `count` with `parity` set; otherwise strict alternation
+    // cannot close a ring and the odd count is rejected.
+    bool allow_parity_seam = 4;
+    // Entries local to each iteration.
+    map<string, GeometryExpr> geometry = 5;
+    // The template parts.
+    repeated Part parts = 6;
   }
 
   // A reference to a named entry in `geometry`. The entry's kind must match
@@ -191,7 +255,17 @@ message AnalyticalAssetConfiguration {
       IntersectExpr intersect = 4;
       // A point projected onto a surface (kernel for non-planar surfaces).
       ProjectPointExpr project = 5;
+      // A point written in a frame's coordinates.
+      InFrameExpr in_frame = 6;
     }
+  }
+
+  // The point with coordinates `local` in `frame`: `origin + x·X + y·Y + z·Z`.
+  message InFrameExpr {
+    // The frame.
+    FrameNodeExpr frame = 1;
+    // Frame-local coordinates.
+    Point3Expr local = 2;
   }
 
   // The point on `curve` at parameter `t`.
@@ -239,7 +313,34 @@ message AnalyticalAssetConfiguration {
       IsoCurveExpr iso = 4;
       // A parameter sub-range of a curve.
       TrimExpr trim = 5;
+      // A curve read as authored in a frame.
+      PlacedCurveExpr placed = 6;
+      // An interpolating spline through 3D points.
+      Spline3Expr spline = 7;
+      // A curve with its direction of travel reversed.
+      CurveExpr reversed = 8;
     }
+  }
+
+  // `curve` read as if authored in `frame`: its world coordinates are taken as
+  // coordinates in `frame`. A planar curve composes frames exactly; sampled
+  // and spline curves map their points.
+  message PlacedCurveExpr {
+    // The curve to place.
+    CurveExpr curve = 1;
+    // The frame to place it in.
+    FrameNodeExpr frame = 2;
+  }
+
+  // Interpolating spline of `order` (degree + 1; `0` selects cubic, lowered to
+  // fit fewer points) through 3D `points`; `closed` returns to the first point.
+  message Spline3Expr {
+    // The interpolation points, at least two.
+    repeated PointExpr points = 1;
+    // Spline order; `0` for the default.
+    uint32 order = 2;
+    // Close back to the first point.
+    bool closed = 3;
   }
 
   // Ordered 2D segments in `frame`, forming one connected curve. Segments are
@@ -390,7 +491,10 @@ message AnalyticalAssetConfiguration {
     FrameExpr frame = 1;
   }
 
-  // Straight lines between corresponding normalized parameters of two rails.
+  // Straight lines between corresponding normalized arc-length parameters of
+  // two rails: `rail0(u)` to `rail1(u)`, start to start and end to end, as
+  // authored. Wrap a rail in `CurveExpr.reversed` to change the
+  // correspondence; it is never inferred.
   message RuledSurfaceExpr {
     // The first rail (`v = 0`).
     CurveExpr rail0 = 1;
