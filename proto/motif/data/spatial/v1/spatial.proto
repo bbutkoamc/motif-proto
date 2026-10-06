@@ -1,20 +1,23 @@
 syntax = "proto3";
 
 // Spatial room components: room identity, WKB plan boundaries with per-segment
-// bounding-element references, and portals linking openings to rooms.
+// bounding-element references, a record of which element formed each edge, and
+// portals linking openings to rooms.
 package motif.data.spatial.v1;
 
+import "buf/validate/validate.proto";
 import "motif/data/geometry/v1/geometry.proto";
 import "motif/extension/v1/options.proto";
 import "motif/extension/v1/reference.proto";
 
-// Maps a curve in a boundary loop to the element that bounds that curve.
+// Maps one curve of a boundary ring to the element that forms that curve.
 //
-// Loop 0 is the exterior; loops 1..N are holes.
+// Ring 0 is the exterior; rings 1..N are holes. This message does not store
+// the rings. The component that carries the reference says where those rings live.
 message BoundarySegmentReference {
-  // Zero-based index into SpatialBoundary2D.loops.
+  // Zero-based ring. 0 is the exterior; 1..N are holes.
   uint32 ring_index = 1;
-  // Zero-based index into the loop's Curve2List.curves.
+  // Zero-based index of the curve within that ring.
   uint32 segment_index = 2;
   // The wall, column, or other element that forms this edge.
   motif.extension.v1.EntityReference bounding_entity = 3;
@@ -40,6 +43,41 @@ message SpatialBoundary2D {
   // Ordered closed boundary loops in level-local UV meters. Loop 0 is the
   // exterior; loops 1..N are holes.
   repeated motif.data.geometry.v1.Curve2List loops = 3;
+}
+
+// One edge of a room boundary and the element that forms it.
+//
+// Indexes match BoundarySegmentReference: ring 0 is the exterior, rings 1..N
+// are holes, and segment_index is the curve within that ring. This message
+// does not store the rings. RoomBoundarySources says they live elsewhere on
+// the same entity. An entry that names no element is not a record.
+message RoomBoundarySource {
+  // Zero-based ring. 0 is the exterior; 1..N are holes.
+  uint32 ring_index = 1;
+  // Zero-based index of the curve within that ring.
+  uint32 segment_index = 2;
+  // The wall, column, or other element that forms this edge.
+  motif.extension.v1.EntityReference bounding_entity = 3 [(buf.validate.field).required = true];
+  // Set when bounding_entity belongs to a linked model; omit for the host.
+  motif.extension.v1.ModelReference bounding_model = 4;
+}
+
+// Which element formed each edge of a room boundary.
+//
+// This component stores no geometry. ring_index and segment_index on each
+// entry address the boundary held elsewhere on the same entity: ring 0 is the
+// exterior, rings 1..N are holes, and segment_index is the curve within that
+// ring. A later change to a bounding element does not rewrite this list.
+//
+// A reference here does not keep its target alive. Removing the bounding
+// element leaves the room in place. Presence of this component does not mark
+// the entity as a room.
+message RoomBoundarySources {
+  option (motif.extension.v1.message).component = 186;
+
+  // One entry per remembered edge. Empty is not a record, and each entry names
+  // its element.
+  repeated RoomBoundarySource segments = 1 [(buf.validate.field).repeated.min_items = 1];
 }
 
 // Room identity: source display name and schedule number.
