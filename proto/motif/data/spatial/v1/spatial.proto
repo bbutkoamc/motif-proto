@@ -45,14 +45,14 @@ message SpatialBoundary2D {
   repeated motif.data.geometry.v1.Curve2List loops = 3;
 }
 
-// One edge of a room boundary and the element that forms it.
+// One edge of a boundary and the element that forms it.
 //
 // Indexes match BoundarySegmentReference: ring 0 is the exterior, rings 1..N
 // are holes, and segment_index is the curve within that ring. This message
 // does not store the rings. The component that carries this entry says where
 // those rings live, and which model the element is in. An entry that names no
 // element is not a record.
-message RoomBoundarySource {
+message BoundarySource {
   // Zero-based ring. 0 is the exterior; 1..N are holes.
   uint32 ring_index = 1;
   // Zero-based index of the curve within that ring.
@@ -61,7 +61,7 @@ message RoomBoundarySource {
   motif.extension.v1.EntityReference bounding_entity = 3 [(buf.validate.field).required = true];
 }
 
-// Which element in the room's own model formed each edge of a room boundary.
+// Which element in the containing model formed each edge of a boundary.
 //
 // This component stores no geometry. ring_index and segment_index on each
 // entry address the boundary held elsewhere on the same entity: ring 0 is the
@@ -70,36 +70,37 @@ message RoomBoundarySource {
 //
 // There is no ModelReference. Each element is in the model that contains this
 // component. An edge in a linked model is a segment of
-// LinkedRoomBoundarySources, so a host edge and a linked edge do not share a
+// LinkedBoundarySources, so a host edge and a linked edge do not share a
 // component and the linked model is not applied to the host entity.
 //
 // A reference here does not keep its target alive. Removing the bounding
-// element leaves the room in place. Presence of this component does not mark
-// the entity as a room.
-message RoomBoundarySources {
+// element leaves the boundary in place. Presence of this component does not
+// mark the entity as a room.
+message BoundarySources {
   option (motif.extension.v1.message).component = 186;
 
   // One entry per remembered edge in this model. Empty is not a record, and
   // each entry names its element.
-  repeated RoomBoundarySource segments = 1 [(buf.validate.field).repeated.min_items = 1];
+  repeated BoundarySource segments = 1 [(buf.validate.field).repeated.min_items = 1];
 }
 
-// Edges of one room whose elements all belong to one linked model.
+// Edges of one boundary whose elements all belong to one linked model.
 //
 // A ModelReference qualifies every entity reference in its component. One on
 // each edge rejects two edges that name the same model, and one host edge
 // beside one linked edge applies the linked model to both entity ids. This
 // component carries the model once. Every segment resolves against it, so two
 // edges in that model are two segments. A host edge stays on
-// RoomBoundarySources.
+// BoundarySources.
 //
 // An edge in a second linked model is not a segment here. A component has one
 // ModelReference, and an entity carries one of this component.
 //
 // This component stores no geometry. Indexes address the boundary held
 // elsewhere on the same entity. A reference does not keep its target alive.
-// Presence of this component does not mark the entity as a room.
-message LinkedRoomBoundarySources {
+// Removing the bounding element leaves the boundary in place. Presence of
+// this component does not mark the entity as a room.
+message LinkedBoundarySources {
   option (motif.extension.v1.message).component = 187;
 
   // The model every segment's element belongs to.
@@ -107,7 +108,7 @@ message LinkedRoomBoundarySources {
 
   // One entry per remembered edge in that model. Empty is not a record, and
   // each entry names its element.
-  repeated RoomBoundarySource segments = 2 [(buf.validate.field).repeated.min_items = 1];
+  repeated BoundarySource segments = 2 [(buf.validate.field).repeated.min_items = 1];
 }
 
 // Room identity: source display name and schedule number.
