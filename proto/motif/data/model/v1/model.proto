@@ -2245,3 +2245,27 @@ message CompositePresentation {
     repeated string row_keys = 2 [(buf.validate.field).repeated.min_items = 1];
   }
 }
+
+// <add>A behavior which computes a double value with a custom function.
+// The function reads every value in `inputs` and produces the value written to
+// `output`. Inputs and the output resolve through the evaluation context, which
+// remaps definition references in an instance context.</add>
+message CustomRegenerateBehavior {
+  option (motif.extension.v1.message).component = 186;
+
+  // <add>Values read by the function, in parameter order: the first is the
+  // function's first parameter, and so on. Each referenced value must resolve; an
+  // unresolved reference is an incomplete evaluation.</add>
+  repeated motif.extension.v1.DataReference inputs = 1 [(motif.extension.v1.field).data_reference_expected_type = {kind: TYPE_DOUBLE}];
+
+  // <add>Where the double produced by the function is placed.</add>
+  motif.extension.v1.DataReference output = 2 [
+    (buf.validate.field).required = true,
+    (motif.extension.v1.field).data_reference_expected_type = {kind: TYPE_DOUBLE}
+  ];
+
+  // <add>The function to run: a WebAssembly component binary exporting the instance
+  // `motif:test/changeprop-regen@1.0.0`, whose function `changeprop-regen` takes one f64 per
+  // input, in `inputs` order, and returns the output value as an f64.</add>
+  bytes function = 3 [(buf.validate.field).required = true];
+}
