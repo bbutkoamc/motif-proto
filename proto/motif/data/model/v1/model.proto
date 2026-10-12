@@ -511,6 +511,13 @@ message ParameterBinding {
   }
 }
 
+message Invoke {
+  motif.extension.v1.EntityReference operation = 1;
+
+  // The bindings used to resolve each declared parameter, keyed by name.
+  map<string, ParameterBinding> bindings = 3;
+}
+
 // The behavior which operates on `ParameterDeclarations` and `ResolvedParameters`.
 //
 // This behavior's regeneration logic is as follows:
