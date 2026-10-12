@@ -2246,7 +2246,7 @@ message CompositePresentation {
   }
 }
 
-// <add>A behavior which computes a double value with a custom function.
+// <add>A behavior which computes a value with a custom function.
 // The function reads every value in `inputs` and produces the value written to
 // `output`. Inputs and the output resolve through the evaluation context, which
 // remaps definition references in an instance context.</add>
@@ -2256,16 +2256,27 @@ message CustomRegenerateBehavior {
   // <add>Values read by the function, in parameter order: the first is the
   // function's first parameter, and so on. Each referenced value must resolve; an
   // unresolved reference is an incomplete evaluation.</add>
-  repeated motif.extension.v1.DataReference inputs = 1 [(motif.extension.v1.field).data_reference_expected_type = {kind: TYPE_DOUBLE}];
+  repeated CustomRegenerateValue inputs = 1;
 
-  // <add>Where the double produced by the function is placed.</add>
-  motif.extension.v1.DataReference output = 2 [
-    (buf.validate.field).required = true,
-    (motif.extension.v1.field).data_reference_expected_type = {kind: TYPE_DOUBLE}
-  ];
+  // <add>Where the value produced by the function is placed.</add>
+  CustomRegenerateValue output = 2 [(buf.validate.field).required = true];
 
   // <add>The function to run: a WebAssembly component binary exporting the instance
-  // `motif:test/changeprop-regen@1.0.0`, whose function `changeprop-regen` takes one f64 per
-  // input, in `inputs` order, and returns the output value as an f64.</add>
+  // `motif:test/changeprop-regen@1.0.0`, whose function `changeprop-regen` takes one
+  // parameter per input, in `inputs` order, and returns the output value. Each
+  // parameter and the result have the type declared by the corresponding
+  // `expected_type`.</add>
   bytes function = 3 [(buf.validate.field).required = true];
+}
+
+// <add>A value read or written by a custom function, and its type.</add>
+message CustomRegenerateValue {
+  // <add>The location of the value. Its type is given by `expected_type`, not by
+  // the schema, so a static data_reference_expected_type is intentionally not set.</add>
+  // buf:lint:ignore MOTIF_DATA_REFERENCE_MISSING_EXPECTED_TYPE
+  motif.extension.v1.DataReference reference = 1 [(buf.validate.field).required = true];
+
+  // <add>The type of the referenced value. Currently TYPE_DOUBLE, TYPE_INT64 and
+  // TYPE_BOOL are supported.</add>
+  motif.extension.v1.TypeSpec expected_type = 2 [(buf.validate.field).required = true];
 }
