@@ -2251,32 +2251,30 @@ message CompositePresentation {
 // `output`. Inputs and the output resolve through the evaluation context, which
 // remaps definition references in an instance context.</add>
 message CustomRegenerateBehavior {
-  option (motif.extension.v1.message).component = 186;
+  option (motif.extension.v1.message).component = 187;
 
   // <add>Values read by the function, in parameter order: the first is the
   // function's first parameter, and so on. Each referenced value must resolve; an
-  // unresolved reference is an incomplete evaluation.</add>
-  repeated CustomRegenerateValue inputs = 1;
+  // unresolved reference is an incomplete evaluation. Each value's type is the
+  // type of the corresponding parameter in the function's WIT, so a static
+  // data_reference_expected_type is intentionally not set.</add>
+  // buf:lint:ignore MOTIF_DATA_REFERENCE_MISSING_EXPECTED_TYPE
+  repeated motif.extension.v1.DataReference inputs = 1;
 
-  // <add>Where the value produced by the function is placed.</add>
-  CustomRegenerateValue output = 2 [(buf.validate.field).required = true];
+  // <add>Where the value produced by the function is placed. Its type is the
+  // function's result type in its WIT, so a static data_reference_expected_type
+  // is intentionally not set.</add>
+  // buf:lint:ignore MOTIF_DATA_REFERENCE_MISSING_EXPECTED_TYPE
+  motif.extension.v1.DataReference output = 2 [(buf.validate.field).required = true];
 
   // <add>The function to run: a WebAssembly component binary exporting the instance
   // `motif:test/changeprop-regen@1.0.0`, whose function `changeprop-regen` takes one
-  // parameter per input, in `inputs` order, and returns the output value. Each
-  // parameter and the result have the type declared by the corresponding
-  // `expected_type`.</add>
+  // parameter per input, in `inputs` order, and returns the output value. The
+  // parameter and result types are declared by the component's own WIT.</add>
   bytes function = 3 [(buf.validate.field).required = true];
-}
 
-// <add>A value read or written by a custom function, and its type.</add>
-message CustomRegenerateValue {
-  // <add>The location of the value. Its type is given by `expected_type`, not by
-  // the schema, so a static data_reference_expected_type is intentionally not set.</add>
-  // buf:lint:ignore MOTIF_DATA_REFERENCE_MISSING_EXPECTED_TYPE
-  motif.extension.v1.DataReference reference = 1 [(buf.validate.field).required = true];
-
-  // <add>The type of the referenced value. Currently TYPE_DOUBLE, TYPE_INT64 and
-  // TYPE_BOOL are supported.</add>
-  motif.extension.v1.TypeSpec expected_type = 2 [(buf.validate.field).required = true];
+  // <add>A short, human-readable statement of what the behavior does, such as
+  // "Floor color follows level height". It is shown to users when a change can't
+  // be saved because it conflicts with this behavior.</add>
+  string description = 4 [(buf.validate.field).string.min_len = 1];
 }
