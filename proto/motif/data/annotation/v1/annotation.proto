@@ -117,6 +117,9 @@ message Dimension {
     CURVE_REF_WALL_FACE_LEFT = 3;
     // The wall face right of the baseline curve direction.
     CURVE_REF_WALL_FACE_RIGHT = 4;
+    // An authored boundary edge on the owner, identified by boundary_segment_id.
+    // This names the footprint on its authored workplane, not an extrusion edge.
+    CURVE_REF_BOUNDARY_SEGMENT = 5;
   }
 
   // Where along the referenced curve the definition point sits. NEAREST is a
@@ -164,6 +167,17 @@ message Dimension {
   // and reimport because it references the component's own topology (curves,
   // baselines, footprint widths), never a mesh buffer.
   message EntityFeature {
+    option (buf.validate.message).cel = {
+      id: "boundary_segment_id_matches_curve"
+      message: "boundary_segment_id must be a UUID exactly when curve is BOUNDARY_SEGMENT"
+      expression: "this.curve == 5 ? size(this.boundary_segment_id) == 16 : size(this.boundary_segment_id) == 0"
+    };
+    option (buf.validate.message).cel = {
+      id: "boundary_segment_parameter_normalized"
+      message: "boundary segment PARAM stations must be in [0, 1]"
+      expression: "this.curve != 5 || this.station != 4 || (this.param >= 0.0 && this.param <= 1.0)"
+    };
+
     // The referenced entity. Commit asserts the target is persisted. Required.
     motif.extension.v1.EntityReference entity = 1 [(buf.validate.field).required = true];
     // Which curve of the referenced entity the anchor evaluates.
@@ -171,7 +185,14 @@ message Dimension {
     // Where along the referenced curve the definition point sits.
     CurveStation station = 3;
     // Curve parameter, meaningful only when station == CURVE_STATION_PARAM.
+    // For BOUNDARY_SEGMENT this is a normalized [0, 1] station in the edge's
+    // canonical direction, mapped to its current native curve domain, with
+    // topology.reversed applied. Other curve kinds keep their native parameter.
     double param = 4;
+    // Owner-local UUID of a Curve2.topology edge, exactly 16 bytes when curve
+    // is CURVE_REF_BOUNDARY_SEGMENT and empty otherwise. Missing, retired,
+    // malformed, or ambiguous topology must not fall back to a segment index.
+    bytes boundary_segment_id = 5;
   }
 
   // A reference to one of an entity's ReferenceGeometry datums — a named plane

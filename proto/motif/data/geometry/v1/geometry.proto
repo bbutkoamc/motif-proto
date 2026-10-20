@@ -103,6 +103,23 @@ message Domain {
   }
 }
 
+// Authored identity and canonical direction of one boundary edge.
+//
+// IDs are scoped to the owning entity, across all profile parameters, regions,
+// exterior loops, and holes. Reordering, winding normalization, and topology-
+// preserving reshapes retain the ID. Splitting, merging, or deleting an edge
+// retires its ID; replacement edges receive fresh IDs. Undo restores the former
+// IDs. Missing or duplicate IDs must leave a persistent reference unresolved.
+message CurveTopologyIdentity {
+  // Exactly 16 UUID bytes. This identifies an edge, not an entity.
+  bytes id = 1 [(buf.validate.field).bytes.len = 16];
+  // The stored curve runs opposite the edge's canonical reference direction.
+  // Reversing the stored curve toggles this flag, preserving Start/End/Param
+  // stations in the canonical direction. A reparameterization must preserve
+  // the canonical station mapping or retire the ID.
+  bool reversed = 2;
+}
+
 // A two-dimensional curve, one of several concrete curve kinds.
 message Curve2 {
   // The concrete curve geometry.
@@ -116,6 +133,11 @@ message Curve2 {
     // A NURBS curve (possibly unweighted / B-spline).
     Nurbs2 nurbs = 4;
   }
+
+  // Optional authored boundary identity, carried with the geometry through all
+  // profile rewrites. Legacy curves omit this until a durable authoring edit
+  // assigns identity. Readers must not assign IDs during load or hover.
+  CurveTopologyIdentity topology = 5;
 }
 
 // A line in two-dimensional space, parameterized over a domain.
