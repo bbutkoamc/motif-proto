@@ -187,11 +187,13 @@ message Dimension {
     // Curve parameter, meaningful only when station == CURVE_STATION_PARAM.
     // For BOUNDARY_SEGMENT this is a normalized [0, 1] station in the edge's
     // canonical direction, mapped to its current native curve domain, with
-    // topology.reversed applied. Other curve kinds keep their native parameter.
+    // the region map's BoundarySegmentLocation.reversed applied. Other curve
+    // kinds keep their native parameter.
     double param = 4;
-    // Owner-local UUID of a Curve2.topology edge, exactly 16 bytes when curve
-    // is CURVE_REF_BOUNDARY_SEGMENT and empty otherwise. Missing, retired,
-    // malformed, or ambiguous topology must not fall back to a segment index.
+    // Owner-local UUID key in ClosedRegion2D.boundary_segments, encoded as 16
+    // UUID octets in network order when curve is CURVE_REF_BOUNDARY_SEGMENT,
+    // and empty otherwise. Missing, retired, malformed, or ambiguous mappings
+    // must not fall back to a segment index.
     bytes boundary_segment_id = 5;
   }
 

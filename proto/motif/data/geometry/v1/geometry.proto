@@ -103,23 +103,6 @@ message Domain {
   }
 }
 
-// Authored identity and canonical direction of one boundary edge.
-//
-// IDs are scoped to the owning entity, across all profile parameters, regions,
-// exterior loops, and holes. Reordering, winding normalization, and topology-
-// preserving reshapes retain the ID. Splitting, merging, or deleting an edge
-// retires its ID; replacement edges receive fresh IDs. Undo restores the former
-// IDs. Missing or duplicate IDs must leave a persistent reference unresolved.
-message CurveTopologyIdentity {
-  // Exactly 16 UUID bytes. This identifies an edge, not an entity.
-  bytes id = 1 [(buf.validate.field).bytes.len = 16];
-  // The stored curve runs opposite the edge's canonical reference direction.
-  // Reversing the stored curve toggles this flag, preserving Start/End/Param
-  // stations in the canonical direction. A reparameterization must preserve
-  // the canonical station mapping or retire the ID.
-  bool reversed = 2;
-}
-
 // A two-dimensional curve, one of several concrete curve kinds.
 message Curve2 {
   // The concrete curve geometry.
@@ -133,11 +116,6 @@ message Curve2 {
     // A NURBS curve (possibly unweighted / B-spline).
     Nurbs2 nurbs = 4;
   }
-
-  // Optional authored boundary identity, carried with the geometry through all
-  // profile rewrites. Legacy curves omit this until a durable authoring edit
-  // assigns identity. Readers must not assign IDs during load or hover.
-  CurveTopologyIdentity topology = 5;
 }
 
 // A line in two-dimensional space, parameterized over a domain.
@@ -224,6 +202,19 @@ message Curve2List {
 // Legacy dual-read: a lone `Curve2List` in a profile `Any` is this message
 // with that list as `exterior` and no `interiors`.
 message ClosedRegion2D {
+  // Current location and stored direction of an authored boundary segment.
+  message BoundarySegmentLocation {
+    // Loop 0 is exterior; loop n+1 is interiors[n].
+    uint32 loop_index = 1;
+    // Zero-based index into the selected loop's Curve2List.curves.
+    uint32 segment_index = 2;
+    // The stored curve runs opposite the segment's canonical reference direction.
+    // Reversing the curve toggles this flag, preserving Start/End/Param stations.
+    // A reparameterization must preserve the canonical station mapping or retire
+    // the segment's ID.
+    bool reversed = 3;
+  }
+
   // The single outer loop. Required and nonempty.
   Curve2List exterior = 1 [
     (buf.validate.field).required = true,
@@ -245,6 +236,26 @@ message ClosedRegion2D {
       }
     }
   }];
+
+  // Authored boundary segments, keyed by canonical lowercase hyphenated UUID
+  // text. A key encodes the same 16 UUID octets, in network order, as a
+  // Dimension.EntityFeature.boundary_segment_id. IDs are scoped to the owning
+  // entity across all profile parameters, regions, exterior loops, and holes.
+  //
+  // Empty means no authored identity; an unmapped curve has none. Legacy
+  // profiles omit this map until a durable authoring edit assigns identity.
+  // Readers must not assign IDs during load or hover.
+  //
+  // Consumers must validate loop/segment bounds, at most one ID per current
+  // curve, and owner-wide ID uniqueness. Missing, retired, malformed, or
+  // ambiguous mappings leave persistent references unresolved, with no fallback
+  // to a segment index.
+  //
+  // Geometry and mappings must be rewritten atomically. Reordering, winding
+  // normalization, and topology-preserving reshapes retain IDs and update
+  // locations/directions. Splitting, merging, or deleting a segment retires its
+  // ID; replacement segments receive fresh IDs. Undo restores the former IDs.
+  map<string, BoundarySegmentLocation> boundary_segments = 3 [(buf.validate.field).map.keys.string.pattern = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"];
 }
 
 // One or more disjoint closed regions (MultiPolygon-shaped).
