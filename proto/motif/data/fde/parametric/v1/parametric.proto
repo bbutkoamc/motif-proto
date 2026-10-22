@@ -16,6 +16,7 @@ syntax = "proto3";
 // runtime representation.
 package motif.data.fde.parametric.v1;
 
+import "buf/validate/validate.proto";
 import "motif/data/geometry/v1/geometry.proto";
 import "motif/data/style/v1/style.proto";
 import "motif/extension/v1/options.proto";
@@ -31,12 +32,12 @@ import "motif/extension/v1/options.proto";
 // "kernel" below need a geometry kernel; a reader without one (a client
 // preview) declines the part rather than approximating it.
 message AnalyticalAssetConfiguration {
-  option (motif.extension.v1.message).component = 198;
+  option (motif.extension.v1.message).component = 215;
 
   // Minimum reader version required to interpret this configuration. Always 3
   // for this component; reserved so a later semantic extension can bump it
   // without a new component.
-  uint32 version = 1;
+  uint32 version = 1 [(buf.validate.field).uint32.const = 3];
 
   // Named analytical geometry, resolved before any part is evaluated. An entry
   // may reference another entry by name through a `GeometryRef`; the
@@ -302,7 +303,7 @@ message AnalyticalAssetConfiguration {
   // A polyline through `points`, in order.
   message PolylineSegment {
     // The vertices, at least two.
-    repeated Point2Expr points = 1;
+    repeated Point2Expr points = 1 [(buf.validate.field).repeated.min_items = 2];
     // Append the segment back to the first point.
     bool closed = 2;
   }
@@ -312,7 +313,7 @@ message AnalyticalAssetConfiguration {
   // result is reproducible across readers.
   message SplineSegment {
     // The interpolated points, at least two.
-    repeated Point2Expr points = 1;
+    repeated Point2Expr points = 1 [(buf.validate.field).repeated.min_items = 2];
     // Spline order (degree + 1); 0 selects the reader's default, cubic.
     uint32 order = 2;
     // Interpolate a closed, periodic curve.
@@ -420,7 +421,10 @@ message AnalyticalAssetConfiguration {
     // The part's display color.
     motif.data.style.v1.Color.Srgb color = 2;
     // Display opacity in [0, 1]; absent = fully opaque.
-    optional float opacity = 3;
+    optional float opacity = 3 [(buf.validate.field).float = {
+      gte: 0
+      lte: 1
+    }];
     // The part's geometry recipe.
     oneof geometry {
       // A solid: a planar profile swept along a planar spine, both in `frame`.
