@@ -138,6 +138,9 @@ message Dimension {
     CURVE_REF_WALL_FACE_LEFT = 3;
     // The wall face right of the baseline curve direction.
     CURVE_REF_WALL_FACE_RIGHT = 4;
+    // A footprint curve on one ClosedRegion2D of the owner, identified by
+    // boundary_segment_id. This is not an edge of the extruded solid.
+    CURVE_REF_BOUNDARY_SEGMENT = 5;
   }
 
   // Where along the referenced curve the definition point sits. NEAREST is a
@@ -185,6 +188,17 @@ message Dimension {
   // and reimport because it references the component's own topology (curves,
   // baselines, footprint widths), never a mesh buffer.
   message EntityFeature {
+    option (buf.validate.message).cel = {
+      id: "boundary_segment_id_matches_curve"
+      message: "boundary_segment_id is set exactly when curve is BOUNDARY_SEGMENT"
+      expression: "this.curve == 5 ? this.boundary_segment_id > 0u : this.boundary_segment_id == 0u"
+    };
+    option (buf.validate.message).cel = {
+      id: "boundary_segment_parameter_normalized"
+      message: "boundary segment PARAM stations must be in [0, 1]"
+      expression: "this.curve != 5 || this.station != 4 || (this.param >= 0.0 && this.param <= 1.0)"
+    };
+
     // The referenced entity. Commit asserts the target is persisted. Required.
     motif.extension.v1.EntityReference entity = 1 [(buf.validate.field).required = true];
     // Which curve of the referenced entity the anchor evaluates.
@@ -192,7 +206,15 @@ message Dimension {
     // Where along the referenced curve the definition point sits.
     CurveStation station = 3;
     // Curve parameter, meaningful only when station == CURVE_STATION_PARAM.
+    // For CURVE_REF_BOUNDARY_SEGMENT this is a normalized [0, 1] station in
+    // the edge's canonical direction. TopologicalCurve2.reversed maps it
+    // onto `geometry`. Other curve kinds retain their native parameters.
     double param = 4;
+    // Nonzero TopologicalCurve2.edge_id when curve is
+    // CURVE_REF_BOUNDARY_SEGMENT, and 0 otherwise. Find that id on the
+    // referenced entity's regions. One match selects that edge. No match, or
+    // the same id in two regions, stays unresolved.
+    uint32 boundary_segment_id = 5;
   }
 
   // A reference to one of an entity's ReferenceGeometry datums — a named plane

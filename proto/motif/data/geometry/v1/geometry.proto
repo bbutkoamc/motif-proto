@@ -201,19 +201,32 @@ message Curve2List {
 //
 // Legacy dual-read: a lone `Curve2List` in a profile `Any` is this message
 // with that list as `exterior` and no `interiors`.
+//
+// A region uses one representation. Legacy loops are `exterior` and
+// `interiors`. An edited profile uses `exterior_edges` and `interior_edges`,
+// and leaves the curve lists empty. `Curve2` stays a plain curve. The edge
+// id travels with that curve. A nonzero id is unique in this region and is
+// not reused after a split, merge, or delete. Reorder, winding, and reshape
+// keep the id on its curve. Readers do not mint ids. The same id in another
+// region is a different edge.
 message ClosedRegion2D {
-  // The single outer loop. Required and nonempty.
-  Curve2List exterior = 1 [
-    (buf.validate.field).required = true,
-    (buf.validate.field).cel = {
-      id: "closed_region_exterior_nonempty"
-      message: "exterior must contain at least one curve"
-      expression: "size(this.curves) > 0"
-    }
-  ];
+  option (buf.validate.message).cel = {
+    id: "closed_region_one_representation"
+    message: "a region uses curve lists or topological edges, not both"
+    expression: "(size(this.exterior.curves) > 0 && size(this.exterior_edges) == 0 && size(this.interior_edges) == 0) || (size(this.exterior.curves) == 0 && size(this.interiors) == 0 && size(this.exterior_edges) > 0 && this.interior_edges.all(hole, size(hole.curves) > 0))"
+  };
+  option (buf.validate.message).cel = {
+    id: "closed_region_edge_ids_unique"
+    message: "each nonzero edge id appears once in this region"
+    expression: "this.exterior_edges.all(edge, edge.edge_id == 0u || (this.exterior_edges.filter(other, other.edge_id == edge.edge_id).size() == 1 && this.interior_edges.all(hole, !hole.curves.exists(inner, inner.edge_id == edge.edge_id)))) && this.interior_edges.all(hole, hole.curves.all(edge, edge.edge_id == 0u || (hole.curves.filter(other, other.edge_id == edge.edge_id).size() == 1 && this.interior_edges.filter(other_hole, other_hole.curves.exists(inner, inner.edge_id == edge.edge_id)).size() == 1 && this.exterior_edges.all(outer, outer.edge_id != edge.edge_id))))"
+  };
+
+  // The legacy outer loop. Present and nonempty, or empty when
+  // `exterior_edges` holds the loop.
+  Curve2List exterior = 1 [(buf.validate.field).required = true];
 
   // Holes inside the exterior. Empty means a simply-connected region. Each
-  // hole is nonempty.
+  // hole is nonempty. Empty when `interior_edges` holds the holes.
   repeated Curve2List interiors = 2 [(buf.validate.field).repeated = {
     items: {
       cel: {
@@ -223,6 +236,29 @@ message ClosedRegion2D {
       }
     }
   }];
+
+  // Outer loop as topological edges. Empty for a legacy region.
+  repeated TopologicalCurve2 exterior_edges = 3;
+
+  // Holes as topological edges, in the same role as `interiors`.
+  repeated TopologicalCurve2List interior_edges = 4;
+}
+
+// One curve and its stable edge id.
+//
+// `geometry` is a plain `Curve2`. `edge_id` is 0 until an edit assigns one.
+message TopologicalCurve2 {
+  // The curve. Required.
+  Curve2 geometry = 1 [(buf.validate.field).required = true];
+  // Nonzero id of this edge within its `ClosedRegion2D`. Zero means none.
+  uint32 edge_id = 2;
+  // `geometry` runs opposite the edge's canonical direction.
+  bool reversed = 3;
+}
+
+// One hole made of topological edges. Nonempty.
+message TopologicalCurve2List {
+  repeated TopologicalCurve2 curves = 1 [(buf.validate.field).repeated.min_items = 1];
 }
 
 // One or more disjoint closed regions (MultiPolygon-shaped).

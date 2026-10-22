@@ -10,7 +10,9 @@ import "motif/extension/v1/reference.proto";
 
 // Maps a curve in a boundary loop to the element that bounds that curve.
 //
-// Loop 0 is the exterior; loops 1..N are holes.
+// Loop 0 is the exterior; loops 1..N are holes. These indexes locate the
+// bounding element. The stable edge id is `TopologicalCurve2.edge_id` on
+// the room region.
 message BoundarySegmentReference {
   // Zero-based index into SpatialBoundary2D.loops.
   uint32 ring_index = 1;
