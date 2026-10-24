@@ -767,12 +767,17 @@ message BuiltinAssetPartBehavior {
   ];
 
   // The asset entity's stored configuration the parts are evaluated from.
-  // Required.
+  // Required. A version 1–2 asset stores `BuiltinAssetConfiguration`. A version
+  // 3 asset stores `motif.data.fde.parametric.v1.AnalyticalAssetConfiguration`.
   motif.extension.v1.DataReference configuration = 5 [
     (buf.validate.field).required = true,
     (motif.extension.v1.field).data_reference_expected_type = {
       kind: TYPE_MESSAGE
       type_name: "motif.data.model.v1.BuiltinAssetConfiguration"
+    },
+    (motif.extension.v1.field).data_reference_accepted_types = {
+      kind: TYPE_MESSAGE
+      type_name: "motif.data.fde.parametric.v1.AnalyticalAssetConfiguration"
     }
   ];
 }

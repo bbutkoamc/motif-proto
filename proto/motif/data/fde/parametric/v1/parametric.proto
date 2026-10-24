@@ -3,7 +3,7 @@ syntax = "proto3";
 // Analytical geometry for configuration-driven assets: version 3 of the
 // built-in asset configuration language.
 //
-// `motif.data.temporary.v1.BuiltinAssetConfiguration` (versions 1–2) bakes
+// `motif.data.model.v1.BuiltinAssetConfiguration` (versions 1–2) bakes
 // solids from planar line/arc profiles. This package adds named points, curves,
 // and surfaces that later recipe nodes reference by name; polylines, splines,
 // and circles as curve segments; derived geometry (point on curve,
@@ -11,7 +11,7 @@ syntax = "proto3";
 // wires, and sheets as well as solids.
 //
 // The package is self-contained: it carries its own scalar expression and
-// planar primitives rather than importing the `temporary` package, so it does
+// planar primitives rather than importing `motif.data.model.v1`, so it does
 // not inherit that package's churn. A reader decodes versions 1–3 into one
 // runtime representation.
 package motif.data.fde.parametric.v1;
@@ -71,7 +71,7 @@ message AnalyticalAssetConfiguration {
 
   // A scalar expression over the evaluation scope. Mirrors the
   // `literal`/`parameter`/`binary_op`/`neg` leaves of
-  // `motif.data.temporary.v1.ParametricExpression` and adds the two scalars
+  // `motif.data.model.v1.ParametricExpression` and adds the two scalars
   // only geometry can produce.
   message Expr {
     // The expression node.
@@ -199,10 +199,11 @@ message AnalyticalAssetConfiguration {
   message PointAtExpr {
     // The evaluated curve.
     CurveExpr curve = 1;
-    // Curve parameter: the curve's own domain, or a `[0, 1]` fraction of it
-    // when `normalized` is set.
+    // Curve parameter in the curve's own domain. A circle's domain is its angle,
+    // not `[0, 1]`. Set `normalized` to read `t` as a fraction of that domain.
     Expr t = 2;
-    // Interpret `t` as a normalized `[0, 1]` fraction of the domain.
+    // Read `t` as a `[0, 1]` fraction of the curve domain. An iso curve has no
+    // switch: surface parameters are already that fraction.
     bool normalized = 3;
   }
 
@@ -342,7 +343,8 @@ message AnalyticalAssetConfiguration {
     SurfaceExpr surface = 1;
     // The fixed parameter direction.
     IsoDirection dir = 2;
-    // The fixed normalized parameter in `[0, 1]`.
+    // The fixed parameter in `[0, 1]`. Surface parameters are always a fraction
+    // of the domain, so this has no `normalized` switch.
     Expr t = 3;
   }
 
@@ -360,11 +362,13 @@ message AnalyticalAssetConfiguration {
   message TrimExpr {
     // The trimmed curve.
     CurveExpr curve = 1;
-    // The start parameter.
+    // Start parameter in the curve's own domain, or a `[0, 1]` fraction when
+    // `normalized` is set.
     Expr t0 = 2;
-    // The end parameter.
+    // End parameter in the curve's own domain, or a `[0, 1]` fraction when
+    // `normalized` is set.
     Expr t1 = 3;
-    // Interpret `t0` and `t1` as normalized `[0, 1]` fractions of the domain.
+    // Read `t0` and `t1` as `[0, 1]` fractions of the curve domain.
     bool normalized = 4;
   }
 
@@ -402,16 +406,24 @@ message AnalyticalAssetConfiguration {
   // `rail` swept along `direction`; the vector's length is the extrusion
   // distance.
   message ExtrudedSurfaceExpr {
+    // A literal direction has to leave the origin. An expression that evaluates
+    // to zero fails at evaluation, where the components are numbers.
+    option (buf.validate.message).cel = {
+      id: "extruded_surface.direction"
+      message: "a literal extrusion direction is not the zero vector"
+      expression: "!has(this.direction.x.literal) || !has(this.direction.y.literal) || !has(this.direction.z.literal) || this.direction.x.literal != 0.0 || this.direction.y.literal != 0.0 || this.direction.z.literal != 0.0"
+    };
+
     // The extruded rail.
     CurveExpr rail = 1;
-    // The extrusion vector, in meters.
+    // The extrusion vector, in meters. Its length is the distance.
     Vector3Expr direction = 2;
   }
 
   // A smooth blend across `rails`, in order.
   message LoftSurfaceExpr {
     // The rails, at least three.
-    repeated CurveExpr rails = 1;
+    repeated CurveExpr rails = 1 [(buf.validate.field).repeated.min_items = 3];
   }
 
   // A single part of the assembly.

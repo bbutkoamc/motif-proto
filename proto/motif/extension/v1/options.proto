@@ -32,4 +32,8 @@ message MotifFieldOptions {
   // Declares the expected type for a DataReference field. Should be set on all
   // DataReference fields.
   TypeSpec data_reference_expected_type = 1;
+
+  // Further message types a DataReference may resolve to, alongside
+  // `data_reference_expected_type`. Empty when the reference has one type.
+  repeated TypeSpec data_reference_accepted_types = 2;
 }
