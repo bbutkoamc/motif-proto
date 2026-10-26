@@ -217,6 +217,95 @@ message StyleAssetReference {
   motif.extension.v1.ModelReference model = 2;
 }
 
+// Which payload a graphic-style reference names. Unspecified is not a
+// reference: an id alone does not name a style.
+enum GraphicStylePayload {
+  GRAPHIC_STYLE_PAYLOAD_UNSPECIFIED = 0;
+  // A line style asset (LineStyleAsset): pen, color, and pattern.
+  GRAPHIC_STYLE_PAYLOAD_LINE_STYLE = 1;
+  // A graphic style asset (GraphicStyleAsset).
+  GRAPHIC_STYLE_PAYLOAD_GRAPHIC_STYLE = 2;
+  // A material. Stored and not rendered.
+  GRAPHIC_STYLE_PAYLOAD_MATERIAL = 3;
+}
+
+// A fill: color, opacity, and pattern. Not a component. Embedded wherever a
+// fill is set, starting with GraphicStyleAsset, so later styles can carry the
+// same definition instead of inventing their own color and pattern fields.
+//
+// Every field is optional. An unset field leaves that property unset. An unset
+// pattern is not a solid fill. A color style is a StyleAssetReference, the
+// same reference a line style uses for its color.
+message FillStyle {
+  // Fill color: set directly, or taken from a color style asset (ColorStyleAsset).
+  // Neither set leaves the fill color unset.
+  oneof color_source {
+    // A color set directly on this fill.
+    Color color = 1;
+    // A color style asset whose color this fill uses.
+    StyleAssetReference color_style = 2;
+  }
+  // Fill opacity, 0 (no fill) to 1 (opaque). Applies to either color source.
+  optional float opacity = 3 [(buf.validate.field).float = {
+    gte: 0
+    lte: 1
+  }];
+  // Fill pattern name. Unset is not a solid fill.
+  optional string pattern = 4 [(buf.validate.field).string.min_len = 1];
+}
+
+// A reference from a graphic style to an asset. Not a component: embedded in
+// GraphicStyleAsset.
+//
+// Names the asset, the library model and version that own it, and the payload
+// kind. Readers still match the model by id, not version, the same way
+// StyleAssetReference does. The recorded version is what a later pin update
+// moves.
+message GraphicStyleReference {
+  // The asset, and the library model and version that own it.
+  StyleAssetReference reference = 1 [(buf.validate.field).required = true];
+
+  // The payload this reference names.
+  GraphicStylePayload payload = 2 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+}
+
+// A named graphic style: cut and projection linework, a fill, and a material
+// slot. A graphic style asset. Lives on an asset entity (core.v1.Asset + a
+// name) in any library a model can reach.
+//
+// Appearance only. Every field is optional; an unset field leaves that
+// property to whatever applies beneath this style. Cut and projection name
+// line style assets, which may themselves set only a pattern. "Solid" on that
+// line style is an explicit continuous stroke, not an unset pattern. The fill
+// is a FillStyle: color, opacity, and pattern together. The material slot is
+// stored and not rendered.
+message GraphicStyleAsset {
+  option (motif.extension.v1.message).component = 219;
+
+  // The lowest reader version that understands every field of this style.
+  // A reader whose supported version is below this value must not write this
+  // component back: rewriting it would discard fields the reader could not
+  // decode. Unset (0) is the baseline.
+  uint32 min_reader_version = 1;
+
+  // Cut linework: a line style asset. Unset leaves cut pen, color, and
+  // pattern unset so they inherit.
+  GraphicStyleReference cut = 2;
+
+  // Projection linework: a line style asset. Unset leaves projection pen,
+  // color, and pattern unset.
+  GraphicStyleReference projection = 3;
+
+  // Fill color, opacity, and pattern. Unset leaves the fill unset.
+  FillStyle fill = 4;
+
+  // A material reference. Stored and not rendered.
+  GraphicStyleReference material = 5;
+}
+
 // Font identity that survives reload (family name, not an unstable runtime
 // font-database id). A plain embedded message, not a standalone component.
 message Font {
