@@ -4,6 +4,7 @@ syntax = "proto3";
 // hosts.
 package motif.data.fde.datum.v1;
 
+import "buf/validate/validate.proto";
 import "motif/extension/v1/options.proto";
 
 // A named reference plane used as a sketch host (any orientation).
@@ -29,4 +30,29 @@ message GridLineLabel {
 
   // The label text.
   string label = 1;
+}
+
+// The drawn rectangle of a column grid or reference plane, in that datum's
+// own plane. Centres and spans are meters along the `CoordinateSystem3` local
+// axes: local X along the line, local Y up on a vertical plane.
+message DatumExtent {
+  option (motif.extension.v1.message).component = 224;
+
+  // Centre along local X, in meters from the pose origin.
+  double center_u = 1 [(buf.validate.field).double.finite = true];
+
+  // Centre along local Y, in meters from the pose origin.
+  double center_v = 2 [(buf.validate.field).double.finite = true];
+
+  // Full span along local X, in meters.
+  double length_u = 3 [(buf.validate.field).double = {
+    gt: 0
+    finite: true
+  }];
+
+  // Full span along local Y, in meters.
+  double length_v = 4 [(buf.validate.field).double = {
+    gt: 0
+    finite: true
+  }];
 }
