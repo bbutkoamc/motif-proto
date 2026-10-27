@@ -229,13 +229,13 @@ enum GraphicStylePayload {
   GRAPHIC_STYLE_PAYLOAD_MATERIAL = 3;
 }
 
-// A fill: color, opacity, and pattern. Not a component. Embedded wherever a
-// fill is set, starting with GraphicStyleAsset, so later styles can carry the
-// same definition instead of inventing their own color and pattern fields.
+// A fill: color and opacity. Not a component. Embedded wherever a fill is
+// set, starting with GraphicStyleAsset, so later styles can carry the same
+// definition instead of inventing their own color fields.
 //
-// Every field is optional. An unset field leaves that property unset. An unset
-// pattern is not a solid fill. A color style is a StyleAssetReference, the
-// same reference a line style uses for its color.
+// Every field is optional. An unset field leaves that property unset. A color
+// style is a StyleAssetReference, the same reference a line style uses for its
+// color.
 message FillStyle {
   // Fill color: set directly, or taken from a color style asset (ColorStyleAsset).
   // Neither set leaves the fill color unset.
@@ -250,8 +250,6 @@ message FillStyle {
     gte: 0
     lte: 1
   }];
-  // Fill pattern name. Unset is not a solid fill.
-  optional string pattern = 4 [(buf.validate.field).string.min_len = 1];
 }
 
 // A reference from a graphic style to an asset. Not a component: embedded in
@@ -280,8 +278,8 @@ message GraphicStyleReference {
 // property to whatever applies beneath this style. Cut and projection name
 // line style assets, which may themselves set only a pattern. "Solid" on that
 // line style is an explicit continuous stroke, not an unset pattern. The fill
-// is a FillStyle: color, opacity, and pattern together. The material slot is
-// stored and not rendered.
+// is a FillStyle: color and opacity. The material slot is stored and not
+// rendered.
 message GraphicStyleAsset {
   option (motif.extension.v1.message).component = 219;
 
@@ -299,7 +297,7 @@ message GraphicStyleAsset {
   // color, and pattern unset.
   GraphicStyleReference projection = 3;
 
-  // Fill color, opacity, and pattern. Unset leaves the fill unset.
+  // Fill color and opacity. Unset leaves the fill unset.
   FillStyle fill = 4;
 
   // A material reference. Stored and not rendered.
