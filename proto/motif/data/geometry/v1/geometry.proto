@@ -203,11 +203,11 @@ message Curve2List {
 // with that list as `exterior` and no `interiors`.
 //
 // A region uses one representation. Legacy loops are `exterior` and
-// `interiors`. An edited profile uses `exterior_edges` and `interior_edges`,
-// and leaves the curve lists empty. `Curve2` stays a plain curve. The edge
-// id travels with that curve. A nonzero id is unique in this region and is
-// not reused after a split, merge, or delete. Reorder, winding, and reshape
-// keep the id on its curve. Readers do not mint ids. The same id in another
+// `interiors`. An edited profile uses `exterior_edges` and `interior_edges`
+// and omits the curve lists. `Curve2` stays a plain curve. The edge id
+// travels with that curve. A nonzero id is unique in this region and is not
+// reused after a split, merge, or delete. Reorder, winding, and reshape keep
+// the id on its curve. Readers do not mint ids. The same id in another
 // region is a different edge.
 message ClosedRegion2D {
   option (buf.validate.message).cel = {
@@ -221,9 +221,9 @@ message ClosedRegion2D {
     expression: "this.exterior_edges.all(edge, edge.edge_id == 0u || (this.exterior_edges.filter(other, other.edge_id == edge.edge_id).size() == 1 && this.interior_edges.all(hole, !hole.curves.exists(inner, inner.edge_id == edge.edge_id)))) && this.interior_edges.all(hole, hole.curves.all(edge, edge.edge_id == 0u || (hole.curves.filter(other, other.edge_id == edge.edge_id).size() == 1 && this.interior_edges.filter(other_hole, other_hole.curves.exists(inner, inner.edge_id == edge.edge_id)).size() == 1 && this.exterior_edges.all(outer, outer.edge_id != edge.edge_id))))"
   };
 
-  // The legacy outer loop. Present and nonempty, or empty when
-  // `exterior_edges` holds the loop.
-  Curve2List exterior = 1 [(buf.validate.field).required = true];
+  // The legacy outer loop. Nonempty, or unset when `exterior_edges` holds
+  // the loop.
+  Curve2List exterior = 1;
 
   // Holes inside the exterior. Empty means a simply-connected region. Each
   // hole is nonempty. Empty when `interior_edges` holds the holes.
