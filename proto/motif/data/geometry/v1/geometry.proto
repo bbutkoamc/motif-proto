@@ -190,50 +190,70 @@ message Curve2List {
 
 // A planar region: one outer loop and zero or more interior loops (holes).
 //
-// Each segment is a `TopologicalCurve2`: one plain `Curve2` and that edge's
-// id. Consecutive segments share endpoints and the last segment connects
-// back to the first. Interior loops wind opposite the exterior (CW holes if
-// the outer is CCW). Proto does not check winding or that segments close;
-// consumers must refuse an open or empty loop when building a face. Several
-// disconnected outers or a nested island (positive material inside a hole)
-// belong on `MultiClosedRegion2D`, not on this message.
+// Each loop is a list of segments (lines, arcs, ellipses, NURBS), not a
+// polyline-only ring. Consecutive segments share endpoints and the last
+// segment connects back to the first. Interior loops wind opposite the
+// exterior (CW holes if the outer is CCW). Proto does not check winding or
+// that segments close; consumers must refuse an open or empty loop when
+// building a face. Several disconnected outers or a nested island (positive
+// material inside a hole) belong on `MultiClosedRegion2D`, not on this
+// message.
 //
-// A nonzero edge id is unique in this region and is not reused after a
-// split, merge, or delete. Reorder, winding, and reshape keep the id on its
-// curve. Readers do not mint ids. The same id in another region is a
-// different edge.
+// Legacy dual-read: a lone `Curve2List` in a profile `Any` is this message
+// with that list as `exterior` and no `interiors`.
+//
+// `edge_locations` is empty until an edit assigns ids. The curves stay in
+// `exterior` and `interiors`. A key is unique in this region and is not
+// reused after the edge is split, merged, or deleted. Reorder and winding
+// update the location. A reshape keeps the key. Readers do not mint keys.
+// The same key in another region is a different edge.
 message ClosedRegion2D {
-  reserved 1, 2;
-
   option (buf.validate.message).cel = {
-    id: "closed_region_edge_ids_unique"
-    message: "each nonzero edge id appears once in this region"
-    expression: "this.exterior.all(edge, edge.edge_id == 0u || (this.exterior.filter(other, other.edge_id == edge.edge_id).size() == 1 && this.interiors.all(hole, !hole.curves.exists(inner, inner.edge_id == edge.edge_id)))) && this.interiors.all(hole, hole.curves.all(edge, edge.edge_id == 0u || (hole.curves.filter(other, other.edge_id == edge.edge_id).size() == 1 && this.interiors.filter(other_hole, other_hole.curves.exists(inner, inner.edge_id == edge.edge_id)).size() == 1 && this.exterior.all(outer, outer.edge_id != edge.edge_id))))"
+    id: "closed_region_edge_locations_in_range"
+    message: "each edge location must name a curve in this region"
+    expression: "this.edge_locations.all(k, this.edge_locations[k].loop_index == 0u ? this.edge_locations[k].segment_index < uint(size(this.exterior.curves)) : this.edge_locations[k].loop_index <= uint(size(this.interiors)) && this.edge_locations[k].segment_index < uint(size(this.interiors[int(this.edge_locations[k].loop_index) - 1].curves)))"
+  };
+  option (buf.validate.message).cel = {
+    id: "closed_region_edge_locations_unique"
+    message: "each curve has at most one edge id"
+    expression: "this.edge_locations.map(k, string(this.edge_locations[k].loop_index) + \":\" + string(this.edge_locations[k].segment_index)).unique()"
   };
 
-  // Outer loop, one segment per entry. Nonempty.
-  repeated TopologicalCurve2 exterior = 3 [(buf.validate.field).repeated.min_items = 1];
+  // The single outer loop. Required and nonempty.
+  Curve2List exterior = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).cel = {
+      id: "closed_region_exterior_nonempty"
+      message: "exterior must contain at least one curve"
+      expression: "size(this.curves) > 0"
+    }
+  ];
 
   // Holes inside the exterior. Empty means a simply-connected region. Each
-  // hole is a nonempty list of segments.
-  repeated TopologicalCurve2List interiors = 4;
+  // hole is nonempty.
+  repeated Curve2List interiors = 2 [(buf.validate.field).repeated = {
+    items: {
+      cel: {
+        id: "closed_region_interior_nonempty"
+        message: "each interior loop must contain at least one curve"
+        expression: "size(this.curves) > 0"
+      }
+    }
+  }];
+
+  // Authored edge ids, keyed by a nonzero id. Empty when no id is assigned.
+  map<uint32, RegionEdgeLocation> edge_locations = 3 [(buf.validate.field).map.keys.uint32.gt = 0];
 }
 
-// One curve and its stable edge id.
-//
-// `geometry` is a plain `Curve2`. `edge_id` is 0 until an edit assigns one.
-message TopologicalCurve2 {
-  // The curve. Required.
-  Curve2 geometry = 1 [(buf.validate.field).required = true];
-  // Nonzero id of this edge within its `ClosedRegion2D`. Zero means none.
-  uint32 edge_id = 2;
-  // `geometry` runs opposite the edge's canonical direction.
+// Where one authored edge sits in a `ClosedRegion2D`. The curves stay in
+// the region's loop lists.
+message RegionEdgeLocation {
+  // Loop 0 is the exterior. Loop n+1 is `interiors[n]`.
+  uint32 loop_index = 1;
+  // Index into that loop's curves.
+  uint32 segment_index = 2;
+  // The stored curve runs opposite the edge's canonical direction.
   bool reversed = 3;
-}
-
-// One hole made of topological edges. Nonempty.
-message TopologicalCurve2List {
-  repeated TopologicalCurve2 curves = 1 [(buf.validate.field).repeated.min_items = 1];
 }
 
 // One or more disjoint closed regions (MultiPolygon-shaped).
@@ -243,6 +263,10 @@ message TopologicalCurve2List {
 // `regions` — regions do not parent each other. Proto does not check
 // containment or overlap between regions; consumers that build faces must
 // refuse geometrically inconsistent input.
+//
+// Legacy dual-read: a lone `Curve2List` in a profile `Any` is one
+// `ClosedRegion2D` (that exterior, no interiors) as the sole element of
+// `regions`.
 message MultiClosedRegion2D {
   // Nonempty list of closed regions. One region is the usual slab; several
   // are disjoint outers or islands.

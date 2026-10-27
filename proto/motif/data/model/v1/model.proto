@@ -1315,8 +1315,8 @@ message CutGeometryBehavior {
 // `ClosedRegion2D` becomes one planar face (exterior minus holes) extruded
 // along ± the workplane normal (sign baked on the asset via
 // `extrude_along_workplane_normal`) as its own solid body on the `output`
-// entity's `Shape`. Consumers must refuse an empty or open loop. Each
-// segment is a `TopologicalCurve2`; extrusion follows `geometry`.
+// entity's `Shape`. Consumers must refuse an empty or open loop. Extrusion
+// reads the curve lists and does not interpret `edge_locations`.
 message ExtrudeBoundaryProfileBehavior {
   option (motif.extension.v1.message).component = 141;
 

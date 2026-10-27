@@ -207,13 +207,13 @@ message Dimension {
     CurveStation station = 3;
     // Curve parameter, meaningful only when station == CURVE_STATION_PARAM.
     // For CURVE_REF_BOUNDARY_SEGMENT this is a normalized [0, 1] station in
-    // the edge's canonical direction. TopologicalCurve2.reversed maps it
-    // onto `geometry`. Other curve kinds retain their native parameters.
+    // the edge's canonical direction. RegionEdgeLocation.reversed maps it
+    // onto the stored curve. Other curve kinds retain their native parameters.
     double param = 4;
-    // Nonzero TopologicalCurve2.edge_id when curve is
-    // CURVE_REF_BOUNDARY_SEGMENT, and 0 otherwise. Find that id on the
-    // referenced entity's regions. One match selects that edge. No match, or
-    // the same id in two regions, stays unresolved.
+    // Nonzero key in one ClosedRegion2D.edge_locations when curve is
+    // CURVE_REF_BOUNDARY_SEGMENT, and 0 otherwise. Find that key across the
+    // referenced entity's regions. One match selects that location. No match,
+    // or the same key in two regions, stays unresolved.
     uint32 boundary_segment_id = 5;
   }
 
