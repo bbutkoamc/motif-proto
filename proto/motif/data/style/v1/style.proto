@@ -104,6 +104,8 @@ message TagInk {
   }];
 
   // Future graphic-style identity. Retained but not resolved by this stand-in.
+  // When wired up, use a new StyleAssetReference field for model qualification;
+  // do not reinterpret this UUID field as a resolved style reference.
   optional string style_id = 3 [(buf.validate.field).string.uuid = true];
 }
 
@@ -179,6 +181,10 @@ message ColorStyleAsset {
 //
 // Every field is optional; an unset field leaves that property to whatever
 // applies beneath this style (ultimately the application default).
+// This existing wire representation is retained for compatibility. FillStyle
+// and LineStyleSource express the same fill and border semantics for new styles;
+// readers can normalize them internally. Any future schema migration must use
+// new fields rather than changing these fields' types or numbers.
 message ShapeStyleAsset {
   option (motif.extension.v1.message).component = 196;
 
@@ -209,25 +215,53 @@ message ShapeStyleAsset {
 // style). Not a component: embedded in the referencing style.
 // The expected style component is determined by the field using this reference;
 // the target entity must carry that component.
+// These are the legacy follow-latest semantics. Graphic styles opt into the
+// pinned resolution context documented by PinnedStyleAssetReference instead.
 message StyleAssetReference {
   // The referenced style asset entity. Required.
   motif.extension.v1.EntityReference asset = 1 [(buf.validate.field).required = true];
 
-  // The model and version holding the referenced style. Unset means the model
-  // containing the referencing style, where the reference follows local edits.
-  // When set, resolve the style at exactly this version: later source edits do
-  // not change the reference's appearance until its version is explicitly
-  // updated. Changing only the version is a change to the reference.
+  // The library model holding the referenced style. Unset means the model
+  // containing the referencing style, in that style's current resolution
+  // context. A nested local reference uses the same model snapshot as the
+  // containing style; it does not independently load the latest snapshot.
+  // Outside a pinned resolution context, readers match a set model by ID, not
+  // version, so a library update reaches every style that references it.
+  motif.extension.v1.ModelReference model = 2;
+}
+
+// A style reference with explicit version pinning for external assets. Not a
+// component. The field using it determines the required target style component.
+// This new message opts into a pinned resolution context without changing how
+// existing StyleAssetReference values are resolved on their own.
+//
+// The policy applies through the target's entire style dependency graph,
+// including legacy StyleAssetReference fields on referenced or inline styles:
+// an unset model uses the containing style's model snapshot; a set model uses
+// exactly its recorded version. Thus G at L@v3 referring locally to X resolves
+// X at L@v3. A separate reference to X at L@v7 resolves independently; neither
+// path changes the other's version. Readers must keep resolution state per path,
+// rather than choosing one version globally for each model ID.
+message PinnedStyleAssetReference {
+  // The referenced style asset entity. Required.
+  motif.extension.v1.EntityReference asset = 1 [(buf.validate.field).required = true];
+
+  // The external model and exact version holding the style, including Standard
+  // Library, organization libraries, or any other model. Later publications do
+  // not advance this pin. Updating it is an explicit edit to the referencing
+  // model and must be recorded in that model's history.
+  // Unset means the model containing the referencing style: local references
+  // follow local edits. Inside an externally pinned style, "local" means its
+  // pinned snapshot, not the library's latest version.
   motif.extension.v1.ModelReference model = 2;
 }
 
 // A fill: color and opacity. Not a component. Embedded wherever a fill is
-// set, starting with GeometryStyle, so later styles can carry the same
-// definition instead of inventing their own color fields.
+// set, starting with GeometryStyle. New styles reuse this definition;
+// ShapeStyleAsset retains its existing equivalent fields for compatibility.
 //
 // Every field is optional. An unset field leaves that property unset. A color
-// style is a StyleAssetReference, the same reference a line style uses for its
-// color.
+// style uses PinnedStyleAssetReference so external colors remain pinned.
 message FillStyle {
   // Fill color: set directly, or taken from a color style asset (ColorStyleAsset).
   // Neither set leaves the fill color unset.
@@ -235,7 +269,7 @@ message FillStyle {
     // A color set directly on this fill.
     Color color = 1;
     // A color style asset whose color this fill uses.
-    StyleAssetReference color_style = 2;
+    PinnedStyleAssetReference color_style = 2;
   }
   // Fill opacity, 0 (no fill) to 1 (opaque). Applies to either color source.
   optional float opacity = 3 [(buf.validate.field).float = {
@@ -247,13 +281,18 @@ message FillStyle {
 // Line properties taken from a named style asset or defined inline. Not a
 // component: embedded wherever a geometry style sets its line appearance.
 // Both sources support partial properties; unset properties inherit.
+// The sources are alternatives: inline properties replace the reference, not
+// individual properties of the named style. Combining a named style with local
+// overrides is not supported by this message.
+// An unset source, including a future variant this reader does not know,
+// contributes no line properties; inherit all of them.
 message LineStyleSource {
   oneof source {
-    option (buf.validate.oneof).required = true;
-
     // Must reference an entity carrying LineStyleAsset.
-    StyleAssetReference style = 1;
+    PinnedStyleAssetReference style = 1;
     // Line properties owned by the containing style rather than a named asset.
+    // References within these properties use the pinned resolution policy of
+    // PinnedStyleAssetReference, including legacy color_style references.
     LineStyleAsset properties = 2;
   }
 }
@@ -270,23 +309,41 @@ message GeometryStyle {
   FillStyle fill = 2;
 }
 
-// A named graphic style: cut and projection appearance, and a material
-// slot. A graphic style asset. Lives on an asset entity (core.v1.Asset + a
-// name) in any library a model can reach.
+// A named graphic style: cut and projection appearance. Lives on an asset
+// entity (core.v1.Asset + a name) in any library a model can reach.
 //
 // Appearance only. Every field is optional; an unset field leaves that
 // property to whatever applies beneath this style. Cut and projection each
 // group linework and fill. Line properties may be inline or reference a line
 // style asset, and may set only a pattern. "Solid" on that line style is an
-// explicit continuous stroke, not an unset pattern. The material slot is
-// stored and not rendered.
+// explicit continuous stroke, not an unset pattern. Material styling is deferred
+// until a material asset component defines the reference target.
+//
+// This schema defines the asset only; it does not attach it to an entity,
+// category, or view. When a binding applies the asset, resolve each property
+// independently in this order (first set wins): per-(source, view) override
+// (outline Color/LineStyle or CapFillStyle), graphic style, source Color/LineStyle,
+// ViewStyle default, application default. For example, a cut cap uses an explicit
+// CapFillStyle.color before this style's cut fill, then source Color, then
+// ViewStyle.fill_color. Defining an asset alone changes no appearance.
+// All style references reached from this asset, including those in inline line
+// properties, use PinnedStyleAssetReference's pinned resolution policy.
 message GraphicStyleAsset {
   option (motif.extension.v1.message).component = 219;
 
-  // The lowest reader version that understands every field of this style.
-  // A reader whose supported version is below this value must not write this
-  // component back: rewriting it would discard fields the reader could not
-  // decode. Unset (0) is the baseline.
+  // Earlier drafts used field 4 for fill and field 5 for a material reference.
+  reserved 4, 5;
+  reserved "fill", "material";
+
+  // The lowest reader version that understands every field used by this style,
+  // including nested inline properties. Writers must raise this to the version
+  // that introduced any newly used field or variant, even in a nested message.
+  // A reader below this version renders the properties it understands read-only
+  // and must not write this component back: rewriting could discard unknown
+  // properties. Unset (0) covers the initial cut/projection geometry styles,
+  // fill colors and opacity, and named or inline line properties.
+  // This guard covers embedded values only. Separately referenced assets are
+  // independent components and need their own guards when their schemas evolve.
   uint32 min_reader_version = 1;
 
   // Cut-plane linework and fill. Unset leaves both unset so they inherit.
@@ -295,9 +352,6 @@ message GraphicStyleAsset {
   // Projection linework and surface fill, including room plan fill.
   // Annotations use the line properties. Unset leaves each property unset.
   GeometryStyle projection = 3;
-
-  // Must reference a material asset. Stored and not rendered.
-  StyleAssetReference material = 5;
 }
 
 // Font identity that survives reload (family name, not an unstable runtime
