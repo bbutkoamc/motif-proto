@@ -397,7 +397,8 @@ message GraphicStyleAsset {
   GeometryStyle cut = 2;
 
   // Projection linework and surface fill, including room plan fill.
-  // Annotations use the line properties. Unset leaves each property unset.
+  // Annotations use the line properties and skip ViewStyle and ModelEdges
+  // defaults. Unset leaves each property unset.
   GeometryStyle projection = 3;
 }
 
