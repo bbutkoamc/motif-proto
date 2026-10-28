@@ -5,6 +5,7 @@ package motif.api.v1;
 import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
+import "motif/data/external/v1/categories.proto";
 
 // The persistence service stores model state and changeset history.
 //
@@ -286,10 +287,22 @@ message ListChangesetRequest {
   // Number of elements to return in each page. Default behavior is
   // server-defined. Values must be 1..500, else returns INVALID_ARGUMENT.
   optional uint32 page_size = 4;
+
+  // Include complete stored results; default false. Unavailable or unreadable
+  // results are omitted without failing metadata. If an enriched response
+  // exceeds the configured message-size limit, retry with
+  // `include_semantic_history=false`.
+  bool include_semantic_history = 5;
 }
 
 // Metadata for one changeset in model history.
 message ChangesetListItem {
+  option (buf.validate.message).cel = {
+    id: "changeset_list_item.semantic_stage_applicability"
+    message: "a semantic result must include DERIVED exactly when has_derived is true"
+    expression: "!has(this.semantic_history) || this.semantic_history.stages.exists(result, result.stage == 69) == this.has_derived"
+  };
+
   // buf:lint:ignore ENUM_VALUE_PREFIX
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   enum ChangesetRace {
@@ -320,6 +333,96 @@ message ChangesetListItem {
   // Classifies whether the created changeset's and concurrent changes touched
   // the same entities. Certain race conditions will be rejected by the server.
   ChangesetRace race = 6;
+
+  // Complete result when requested and available. Empty stages are authoritative;
+  // omission preserves retained facts.
+  SemanticHistory semantic_history = 7;
+}
+
+// Complete facts for the enclosing version; replaces retained subsets.
+message SemanticHistory {
+  // Complete stage facts.
+  message StageResult {
+    option (buf.validate.message).cel = {
+      id: "semantic_history.unique_entities"
+      message: "entity changes must be unique within a stage"
+      expression: "this.entity_changes.map(entity, entity.entity_id).unique()"
+    };
+
+    // CLIENT or DERIVED.
+    Stage stage = 1 [(buf.validate.field).enum = {
+      in: [
+        10,
+        69
+      ]
+    }];
+
+    // Empty means a completed no-op.
+    repeated EntityChange entity_changes = 2;
+  }
+
+  // Entity lifecycle and classifications.
+  message EntityChange {
+    // Lifecycle change.
+    enum Verb {
+      // Invalid.
+      VERB_UNSPECIFIED = 0;
+      // Created.
+      VERB_CREATE = 1;
+      // Updated.
+      VERB_UPDATE = 2;
+      // Deleted.
+      VERB_DELETE = 3;
+    }
+
+    // Entity UUID.
+    bytes entity_id = 1 [(buf.validate.field).bytes.len = 16];
+    Verb verb = 2 [(buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    }];
+    // Independent assignments; empty can mean unclassified.
+    repeated Classification classifications = 3;
+    // May coexist with assignments; preserves unknown nonzero values.
+    optional ClassificationIssue classification_issue = 4 [(buf.validate.field).enum.not_in = 0];
+  }
+
+  // Typed source assignment.
+  message Classification {
+    oneof assignment {
+      option (buf.validate.oneof).required = true;
+
+      // Preserves unknown nonzero values.
+      motif.data.external.v1.RevitCategory revit_category = 1 [(buf.validate.field).enum.not_in = 0];
+      // Exact source string.
+      string ifc_class = 2 [(buf.validate.field).string.min_len = 1];
+    }
+  }
+
+  // Missing classification evidence.
+  enum ClassificationIssue {
+    // Omit instead.
+    CLASSIFICATION_ISSUE_UNSPECIFIED = 0;
+    // Evidence unavailable.
+    CLASSIFICATION_ISSUE_UNAVAILABLE = 1;
+  }
+
+  option (buf.validate.message).cel = {
+    id: "semantic_history.unique_stages"
+    message: "each persisted stage must appear once"
+    expression: "this.stages.map(result, result.stage).unique()"
+  };
+  option (buf.validate.message).cel = {
+    id: "semantic_history.client_stage"
+    message: "a semantic result must include CLIENT"
+    expression: "this.stages.exists(result, result.stage == 10)"
+  };
+
+  // CLIENT, plus DERIVED exactly when has_derived.
+  repeated StageResult stages = 1 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 2
+  }];
 }
 
 // Changeset history page for a model.
