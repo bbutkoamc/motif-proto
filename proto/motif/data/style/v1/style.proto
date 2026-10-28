@@ -104,8 +104,8 @@ message TagInk {
   }];
 
   // Future graphic-style identity. Retained but not resolved by this stand-in.
-  // When wired up, use a new StyleAssetReference field for model qualification;
-  // do not reinterpret this UUID field as a resolved style reference.
+  // When wired up, use a new PinnedStyleAssetReference field for model
+  // qualification; do not reinterpret this UUID field as a resolved reference.
   optional string style_id = 3 [(buf.validate.field).string.uuid = true];
 }
 
@@ -182,9 +182,11 @@ message ColorStyleAsset {
 // Every field is optional; an unset field leaves that property to whatever
 // applies beneath this style (ultimately the application default).
 // This existing wire representation is retained for compatibility. FillStyle
-// and LineStyleSource express the same fill and border semantics for new styles;
-// readers can normalize them internally. Any future schema migration must use
-// new fields rather than changing these fields' types or numbers.
+// and LineStyleSource express equivalent properties for new styles, but their
+// explicit references are pinned while these legacy references follow latest.
+// Readers that normalize these properties must retain the reference resolution
+// mode. Any future schema migration must use new fields rather than changing
+// these fields' types or numbers.
 message ShapeStyleAsset {
   option (motif.extension.v1.message).component = 196;
 
@@ -215,8 +217,8 @@ message ShapeStyleAsset {
 // style). Not a component: embedded in the referencing style.
 // The expected style component is determined by the field using this reference;
 // the target entity must carry that component.
-// These are the legacy follow-latest semantics. Graphic styles opt into the
-// pinned resolution context documented by PinnedStyleAssetReference instead.
+// The recorded model version is never a pin. Graphic styles constrain these
+// legacy references as documented by PinnedStyleAssetReference instead.
 message StyleAssetReference {
   // The referenced style asset entity. Required.
   motif.extension.v1.EntityReference asset = 1 [(buf.validate.field).required = true];
@@ -225,8 +227,11 @@ message StyleAssetReference {
   // containing the referencing style, in that style's current resolution
   // context. A nested local reference uses the same model snapshot as the
   // containing style; it does not independently load the latest snapshot.
-  // Outside a pinned resolution context, readers match a set model by ID, not
-  // version, so a library update reaches every style that references it.
+  // Readers match a set model by ID, never by its recorded version. Outside a
+  // pinned context this follows library updates. Inside a pinned context, an
+  // explicit reference to the containing model uses the containing snapshot,
+  // just like an unset model. A legacy reference to another model must be
+  // converted before the style can be reused in a pinned graph.
   motif.extension.v1.ModelReference model = 2;
 }
 
@@ -235,13 +240,24 @@ message StyleAssetReference {
 // This new message opts into a pinned resolution context without changing how
 // existing StyleAssetReference values are resolved on their own.
 //
-// The policy applies through the target's entire style dependency graph,
-// including legacy StyleAssetReference fields on referenced or inline styles:
-// an unset model uses the containing style's model snapshot; a set model uses
-// exactly its recorded version. Thus G at L@v3 referring locally to X resolves
-// X at L@v3. A separate reference to X at L@v7 resolves independently; neither
-// path changes the other's version. Readers must keep resolution state per path,
-// rather than choosing one version globally for each model ID.
+// The policy applies through the target's entire style dependency graph.
+// Explicit PinnedStyleAssetReference values use their recorded versions.
+// Legacy StyleAssetReference values never use their stored versions as pins:
+// an unset model, or a model ID equal to the containing style's model, resolves
+// in that style's snapshot. Thus G at L@v3 referencing X in L resolves X at L@v3,
+// even if a legacy reference explicitly records L@v1. A separate explicit pin
+// to X at L@v7 resolves independently; neither path changes the other's version.
+// Readers must keep resolution state per path, not one version per model ID.
+//
+// A legacy reference to a different model cannot establish a stable dependency:
+// its version may have been a placeholder when follow-latest data was written.
+// Before a writer reuses that style in a pinned graph, it must convert that edge
+// to an explicit pinned reference in a field supporting this type, or copy its
+// resolved properties inline so the graph no longer relies on that edge.
+// Reject reuse until conversion is complete; do not silently follow latest or
+// reinterpret the legacy version as a pin. With the current LineStyleAsset
+// schema, an external legacy color reference must be replaced by a direct color
+// or a reference within the containing model snapshot before pinned reuse.
 message PinnedStyleAssetReference {
   // The referenced style asset entity. Required.
   motif.extension.v1.EntityReference asset = 1 [(buf.validate.field).required = true];
@@ -291,8 +307,9 @@ message LineStyleSource {
     // Must reference an entity carrying LineStyleAsset.
     PinnedStyleAssetReference style = 1;
     // Line properties owned by the containing style rather than a named asset.
-    // References within these properties use the pinned resolution policy of
-    // PinnedStyleAssetReference, including legacy color_style references.
+    // Legacy color_style references stay within the containing model snapshot
+    // under PinnedStyleAssetReference's policy; cross-model legacy edges must
+    // be converted before reuse. Their recorded versions are not pins.
     LineStyleAsset properties = 2;
   }
 }
@@ -326,6 +343,10 @@ message GeometryStyle {
 // ViewStyle default, application default. For example, a cut cap uses an explicit
 // CapFillStyle.color before this style's cut fill, then source Color, then
 // ViewStyle.fill_color. Defining an asset alone changes no appearance.
+// Bindings may select sources by filters; a Color/LineStyle component on a
+// source is a fallback, not by itself an explicit override. An authored override
+// must be represented in the higher-priority override layer to win over a bound
+// graphic style. This asset does not define binding or override storage.
 // All style references reached from this asset, including those in inline line
 // properties, use PinnedStyleAssetReference's pinned resolution policy.
 message GraphicStyleAsset {
