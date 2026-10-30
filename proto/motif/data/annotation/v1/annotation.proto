@@ -98,7 +98,8 @@ message AnnotationLeaderStyle {
   optional float arrowhead_angle_rad = 5;
 }
 
-// The shape a text annotation's leaders end in.
+// The shape a leader or a dimension line ends in: a text annotation's leaders
+// (AnnotationLeaderStyle) and anything styled by an ArrowheadStyleAsset.
 enum ArrowheadType {
   ARROWHEAD_TYPE_UNSPECIFIED = 0;
   // A filled triangle with its point on the end point.
@@ -109,6 +110,54 @@ enum ArrowheadType {
   ARROWHEAD_TYPE_FILLED_CIRCLE = 3;
   // A tick across the end point, 45 degrees clockwise of the line.
   ARROWHEAD_TYPE_DIAGONAL = 4;
+}
+
+// A named, reusable arrowhead: an arrowhead style asset. Lives on an asset
+// entity (core.v1.Asset + a name) in any library a model can reach. Leaders and
+// dimension lines end in one. The style has no color: the head draws in its
+// host line's.
+//
+// Every field is optional; an unset field leaves that property to whatever
+// applies beneath this style (ultimately the application default).
+message ArrowheadStyleAsset {
+  option (motif.extension.v1.message).component = 225;
+
+  // The head shape. UNSPECIFIED leaves it unset.
+  ArrowheadType arrowhead_type = 1;
+  // The head's printed size in millimetres on paper, measured to the stroke
+  // centreline: the length along the host line for the two arrows, the
+  // diameter for the filled circle, the tick's length for the diagonal.
+  //
+  // Millimetres on paper for every host, matching DimensionStyle and
+  // TextStyleAsset.printed_height_mm, so the head holds its printed size across
+  // view scales. A dimension reads it as is. A leader stores its head size in
+  // metres (AnnotationLeaderStyle.arrowhead_size), so a leader taking this
+  // style divides it by 1000.
+  optional float size_mm = 2 [(buf.validate.field).float.gt = 0];
+  // The included tip angle of the two arrow shapes in radians, 0 < angle <= pi/2.
+  // The other shapes keep it unused.
+  optional float angle_rad = 3 [(buf.validate.field).float = {
+    gt: 0
+    lte: 1.5707964
+  }];
+  // The head's stroke weight: a pen index into the project's pen-width table,
+  // whose on-paper width resolves per view scale.
+  //
+  // Unset, the head draws at its host line's weight, whatever that is: a
+  // leader's pen, or a dimension's DimensionStyle.Line weight, including the
+  // screen-constant hairline a dimension draws at pen 0. A hairline head is
+  // expressed that way, so a style saved from a hairline dimension leaves this
+  // unset rather than writing 0.
+  //
+  // Set, it overrides the host line's weight for the head alone, the way a
+  // diagonal tick is drawn heavier than the line it ends. For a dimension this
+  // is the one exception to its line, extension lines and terminators sharing
+  // one look: they keep DimensionStyle.Line's weight, and only the head takes
+  // this pen.
+  optional uint32 pen_size = 4 [(buf.validate.field).uint32 = {
+    gte: 1
+    lte: 16
+  }];
 }
 
 // A persisted dimension annotation.
