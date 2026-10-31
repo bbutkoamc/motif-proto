@@ -30,15 +30,13 @@ service Persistence {
   // version, and any sentinel-entity components the request selected.
   rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
 
-  // Streams entities in a model. Auxiliary components are included, with
-  // `Component.auxiliary` set only on those components.
+  // Streams entities in a model.
   //
   // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
   // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
   rpc Query(QueryRequest) returns (stream VersionedEntityResponse);
 
-  // Applies an atomic changeset. A component that sets `auxiliary` is rejected
-  // with ERROR_AUXILIARY_COMPONENT_IN_PAYLOAD.
+  // Applies an atomic changeset.
   //
   // Errors: FAILED_PRECONDITION, with ErrorInfo reason UNKNOWN_COMPONENT_TYPE
   // (domain persistence.motif.io), when a component value or marker has a
@@ -74,10 +72,9 @@ service Persistence {
   //
   // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
   // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
-  rpc GetAuxiliaries(GetAuxiliariesRequest) returns (stream VersionedEntityResponse);
+  rpc GetAuxiliary(GetAuxiliaryRequest) returns (stream VersionedEntityResponse);
 
-  // Applies a streamed changeset atomically. A component that sets `auxiliary`
-  // is rejected with ERROR_AUXILIARY_COMPONENT_IN_PAYLOAD.
+  // Applies a streamed changeset atomically.
   //
   // Errors: as ApplyChangeset.
   //
@@ -104,56 +101,9 @@ service Persistence {
   // (motif/extension/v1/reference.proto). See TraverseReferencesRequest.
   rpc TraverseReferences(TraverseReferencesRequest) returns (stream TraverseReferencesResponse);
 
-  // Stores auxiliary components at an existing model version. Every component
-  // must set `auxiliary`. This write does not allocate a changeset version.
+  // Stores auxiliary components at an existing model version. This write does
+  // not allocate a changeset version.
   rpc ApplyAuxiliary(ApplyAuxiliaryRequest) returns (ApplyAuxiliaryResponse);
-}
-
-// Stores auxiliary components at one existing model version.
-message ApplyAuxiliaryRequest {
-  // Model id. Globally unique across projects.
-  bytes model_id = 1;
-
-  // Existing model version at which these auxiliary components are stored.
-  // The write does not allocate a new changeset version.
-  int32 version = 2;
-
-  // Entities carrying the auxiliary components to store at `version`. Every
-  // component must set `auxiliary`; a component without it is rejected with
-  // ERROR_NON_AUXILIARY_COMPONENT_IN_PAYLOAD. Setting `Component.deleted`
-  // removes that auxiliary component. Setting `Entity.deleted` is rejected.
-  repeated Entity auxiliaries = 3;
-}
-
-// Result of storing auxiliary components without committing a changeset.
-message ApplyAuxiliaryResponse {
-  // Project id.
-  bytes project_id = 1;
-
-  // Model id. Globally unique across projects.
-  bytes model_id = 2;
-
-  // Either the updated auxiliary snapshot or an application-level rejection.
-  oneof result {
-    // Model version whose auxiliary components were updated. This echoes the
-    // requested version and is not a newly allocated changeset version.
-    int32 version = 3;
-
-    // Reason the auxiliary components were not stored.
-    Error error = 4;
-  }
-
-  // Explains why a syntactically valid auxiliary payload was not stored.
-  enum Error {
-    // No rejection reason was specified.
-    ERROR_UNSPECIFIED = 0;
-
-    // The target entity does not exist.
-    ERROR_ENTITY_DOES_NOT_EXIST = 1;
-
-    // The payload contains a component that does not set `auxiliary`.
-    ERROR_NON_AUXILIARY_COMPONENT_IN_PAYLOAD = 2;
-  }
 }
 
 // A single component value attached to an entity.
@@ -168,20 +118,6 @@ message Component {
 
   // Marks the component as deleted. If present, the `value` field cannot be present.
   optional google.protobuf.Empty deleted = 3;
-
-<<<<<<< HEAD
-  // Marks the component as auxiliary. 
-  // Auxiliary data is data fully generatable (i.e. reproducable) from some 
-  // source data component.  Components which are auxiliary do not participate 
-  // in history restrictions.  These are editable and removable at will.
-  // Source content authored by or on behalf of the User 
-  // MUST NEVER be captured as auxiliary.
-  optional repeated int32 auxiliary_for = 4;
-=======
-  // Marks the component as auxiliary when present. Source content authored by
-  // or on behalf of the user MUST NOT be captured as auxiliary.
-  optional google.protobuf.Empty auxiliary = 4;
->>>>>>> 794a633 (added auxiliary component rpcs and auxiliary field to component)
 }
 
 // An entity and the set of component changes that apply to it.
@@ -200,24 +136,6 @@ message Entity {
   // be non-empty. Not set on the read path - for example, GetChanges will not set this field,
   // even if all components on an entity were deleted between `from_version` and `to_version`.
   optional google.protobuf.Empty deleted = 3;
-<<<<<<< HEAD
-
-  // The auxilary components for this entity.
-  // Components which are auxilary do not participate in history restriction mechanisms.  
-  // These are editable and removable at will.  User data MUST NEVER be captured as auxilary.
-  repeated Component auxilary_components = 4;
-
-  // Map from auxilary component id to component id's which 
-  // the data which is fully derivable (i.e. reproducable) from.
-  map<string, ComponentIdList> auxilary_component_map = 5;
-}
-
-// Identifies the model to delete.
-message ComponentIdList {
-  // Target model id. Globally unique across projects.
-  repeated int32 component_ids = 1;
-=======
->>>>>>> 794a633 (added auxiliary component rpcs and auxiliary field to component)
 }
 
 // Identifies the model to delete.
@@ -337,8 +255,7 @@ message QueryRequest {
 // Each stage rejects duplicate (entity_id, component_id) writes and entity
 // deletes that conflict with same-stage component writes. changes and
 // derived_changes are validated as separate stages. Duplicate-key violations
-// return INVALID_ARGUMENT. A component that sets `auxiliary` is rejected with
-// ERROR_AUXILIARY_COMPONENT_IN_PAYLOAD.
+// return INVALID_ARGUMENT.
 message Changeset {
   // Project id.
   bytes project_id = 1;
@@ -357,32 +274,6 @@ message Changeset {
   // System changes applied after client changes in the assigned version. This
   // stage uses the same duplicate-key rules as changes but is validated separately.
   repeated Entity derived_changes = 8;
-}
-
-// Applies auxilaryatomic entity changes for one model.
-//
-// The first changeset for a model creates it and binds it to project_id; later
-// changesets must use the same project. Changes contains client changes;
-// derived_changes contains system changes within the same version.
-//
-// Each stage rejects duplicate (entity_id, component_id) writes and entity
-// deletes that conflict with same-stage component writes. changes and
-// derived_changes are validated as separate stages. Duplicate-key violations
-// return INVALID_ARGUMENT.
-message AuxilaryDataSet {
-  // Project id.
-  bytes project_id = 1;
-
-  // Model id. Globally unique across projects.
-  bytes model_id = 2;
-
-  // Changeset version to which these data is applicable.
-  int32 version = 3;
-
-  // Client-authored entity changes. Within this stage each (entity_id,
-  // component_id) may appear at most once, and an entity delete conflicts with
-  // any same-stage component write for that entity.
-  repeated Entity changes = 7;
 }
 
 // Requests changeset history for a model. Default: newest first.
@@ -627,7 +518,7 @@ message GetChangesRequest {
 // If wait is true and the client is already at the current model version, the
 // server long-polls for an auxiliary update stored at that version. Timeout
 // returns an OK empty stream.
-message GetAuxiliariesRequest {
+message GetAuxiliaryRequest {
   // Target model id. Globally unique across projects.
   bytes model_id = 1;
 
@@ -701,7 +592,7 @@ message ChangesetResponse {
     // changed after max_known_version. ConflictDetails provides more details.
     ERROR_CONCURRENT_ENTITY_UPDATE = 1;
 
-    // The payload contains a component that sets `auxiliary`.
+    // The payload contains an auxiliary component.
     ERROR_AUXILIARY_COMPONENT_IN_PAYLOAD = 2;
   }
 }
@@ -740,8 +631,7 @@ message ChangesetStream {
   //
   // Duplicate-key validation spans all batches in the stream, with changes and
   // derived_changes tracked as separate stages. Duplicate-key violations return
-  // INVALID_ARGUMENT. A component that sets `auxiliary` is rejected with
-  // ERROR_AUXILIARY_COMPONENT_IN_PAYLOAD.
+  // INVALID_ARGUMENT.
   message Batch {
     // Client-authored entity changes in this batch.
     repeated Entity changes = 1;
@@ -752,6 +642,55 @@ message ChangesetStream {
 
   // Empty message that marks the streamed changeset complete.
   message Footer {}
+}
+
+// Stores auxiliary components at one existing model version.
+message ApplyAuxiliaryRequest {
+  // Model id. Globally unique across projects.
+  bytes model_id = 1;
+
+  // Existing model version at which these auxiliary components are stored.
+  // The write does not allocate a new changeset version.
+  int32 version = 2;
+
+  // Entities carrying the auxiliary components to store at `version`. Setting
+  // `Component.deleted` removes that auxiliary component. Setting
+  // `Entity.deleted` is rejected.
+  repeated Entity auxiliaries = 3;
+}
+
+// Result of storing auxiliary components without committing a changeset.
+message ApplyAuxiliaryResponse {
+  // Model id. Globally unique across projects.
+  bytes model_id = 1;
+
+  // Either the updated auxiliary snapshot or an application-level rejection.
+  oneof result {
+    // Model version whose auxiliary components were updated. This echoes the
+    // requested version and is not a newly allocated changeset version.
+    int32 version = 2;
+
+    // Reason the auxiliary components were not stored.
+    Error error = 3;
+  }
+
+  // Explains why a syntactically valid auxiliary payload was not stored.
+  enum Error {
+    // No rejection reason was specified.
+    ERROR_UNSPECIFIED = 0;
+
+    // Model must exist
+    ERROR_MODEL_DOES_NOT_EXIST = 1;
+
+    // Version must exist
+    ERROR_VERSION_DOES_NOT_EXIST = 2;
+
+    // Entity must exist
+    ERROR_ENTITY_DOES_NOT_EXIST = 3;
+
+    // Only auxiliary components can be added
+    ERROR_NON_AUXILIARY_COMPONENT_IN_PAYLOAD = 4;
+  }
 }
 
 // Requests a new changeset which restores the model state at "latest" to a prior
