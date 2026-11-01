@@ -519,7 +519,7 @@ message GetChangesRequest {
 // server long-polls for an auxiliary update stored at that version. Timeout
 // returns an OK empty stream.
 message GetAuxiliaryRequest {
-  // Target model id. Globally unique across projects.
+  // Target model id.
   bytes model_id = 1;
 
   // Exclusive start version.
@@ -646,7 +646,7 @@ message ChangesetStream {
 
 // Stores auxiliary components at one existing model version.
 message ApplyAuxiliaryRequest {
-  // Model id. Globally unique across projects.
+  // Model id which bounds the auxiliary components.
   bytes model_id = 1;
 
   // Existing model version at which these auxiliary components are stored.
@@ -661,7 +661,7 @@ message ApplyAuxiliaryRequest {
 
 // Result of storing auxiliary components without committing a changeset.
 message ApplyAuxiliaryResponse {
-  // Model id. Globally unique across projects.
+  // Model id.
   bytes model_id = 1;
 
   // Either the updated auxiliary snapshot or an application-level rejection.
