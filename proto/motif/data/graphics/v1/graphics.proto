@@ -88,20 +88,24 @@ enum AttributeId {
   // Vertex position.
   ATTRIBUTE_ID_POSITION = 1;
   // Vertex normal.
-  // The editor recomputes normals for mesh geometry from triangle winding, and it
-  // discards any normals supplied in `data`. Supplying normals has no effect on the
-  // result. A supplied normal of zero length makes the editor reject the whole
-  // geometry, so omit the attribute unless it is known to be valid.
-  // Vertices shared by faces with different directions are averaged, with no crease
-  // angle, so a hard edge is smoothed unless the mesh splits the shared vertex.
+  //
+  // What we tried first did not show up. A mesh written with this attribute drew
+  // the same as one written without it. The client parsed the normals and then
+  // replaced them. A normal of length zero failed the whole geometry, so that
+  // mesh never appeared. Both are client bugs, not rules of this attribute.
+  // Star can shade from a normal supplied here. A hard edge stays sharp when
+  // the vertices on either side of it are not averaged together.
   ATTRIBUTE_ID_NORMAL = 2;
   // Primary texture coordinate.
   ATTRIBUTE_ID_UV = 3;
   // Secondary texture coordinate.
   ATTRIBUTE_ID_UV_1 = 4;
   // Vertex color.
-  // The editor does not read this attribute. Set the colour on the entity with the
-  // Color component (style.v1) instead.
+  //
+  // What we tried first did not show up. Per-vertex color written here was
+  // dropped on the way to the graphics layer, and the entity drew in a single
+  // color. That drop is a client bug. Star reads this attribute. One color for
+  // the whole entity is the Color component (style.v1).
   ATTRIBUTE_ID_COLOR = 5;
 }
 
@@ -110,8 +114,12 @@ message AttributeMetadata {
   // How to find the specific attribute in the byte array.
   oneof accessor {
     // An offset into the byte array.
-    // Encoders must write this even when the value is 0, for the same reason as
-    // IndexMetadata.offset: a oneof member is serialised even at its default value.
+    //
+    // Leaving this unset did not work. The mesh never appeared. Proto3 omits a
+    // plain 0, so the accessor is absent on the wire, and the client ignores a
+    // mesh with no accessor. It does not assume offset 0. Set this oneof even
+    // when the offset is 0. A nested message in place of the oneof was also
+    // ignored, and that mesh never appeared either.
     uint32 offset = 1;
 
     // An identifier into another metadata block, most likely embedded in the byte array itself.
@@ -165,8 +173,9 @@ message IndexMetadata {
   // which embed the index access information.
   oneof accessor {
     // An offset into the byte array which indicates where the indices start.
-    // Encoders must write this even when the value is 0. In proto3, a zero in a
-    // plain field is omitted from the wire, but a oneof member is always serialised.
+    //
+    // Same failure as AttributeMetadata.offset. An omitted 0 meant no accessor,
+    // and the client ignored the mesh. Set this oneof even when the offset is 0.
     uint32 offset = 1;
   }
 
