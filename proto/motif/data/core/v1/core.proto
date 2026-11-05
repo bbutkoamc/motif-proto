@@ -160,6 +160,16 @@ message Comment {
 }
 
 // Renderable mesh geometry for an entity.
+//
+// Rendering notes for agents and humans writing meshes:
+// - Normals supplied in the geometry are recomputed by the editor and have no effect.
+//   See the notes on ATTRIBUTE_ID_NORMAL.
+// - Winding is counter-clockwise when viewed from outside the solid.
+// - Each entity has one colour, from the Color component (style.v1), applied to all
+//   of its geometry. A surface that needs two colours is split into two entities.
+// - Vertex-level colour is ignored. See the notes on ATTRIBUTE_ID_COLOR.
+// - Positions are read from a buffer offset that must be written explicitly,
+//   including 0. See AttributeMetadata.accessor.
 message Mesh {
   option (motif.extension.v1.message).component = 35;
 

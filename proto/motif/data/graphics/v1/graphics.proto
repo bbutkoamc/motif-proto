@@ -12,6 +12,7 @@ message Geometry {
   Topology topology = 1;
 
   // Describes the encoding used for `data`.
+  // The editor reads ENCODING_UNENCODED only. Draco (ENCODING_DRACO) is not supported.
   Encoding encoding = 2;
 
   // The number of vertices in `data`.
@@ -30,6 +31,11 @@ message Geometry {
 }
 
 // How a geometry's vertices are assembled into primitives.
+//
+// Rendering notes for triangle topologies (TRIANGLES):
+// - Winding is counter-clockwise when a face is viewed from outside the solid.
+//   Faces wound clockwise are culled, so they appear to be missing.
+// - Triangle strips are not supported by the editor. Use TRIANGLES.
 enum Topology {
   // Unspecified topology.
   TOPOLOGY_UNSPECIFIED = 0;
@@ -82,12 +88,20 @@ enum AttributeId {
   // Vertex position.
   ATTRIBUTE_ID_POSITION = 1;
   // Vertex normal.
+  // The editor recomputes normals for mesh geometry from triangle winding, and it
+  // discards any normals supplied in `data`. Supplying normals has no effect on the
+  // result. A supplied normal of zero length makes the editor reject the whole
+  // geometry, so omit the attribute unless it is known to be valid.
+  // Vertices shared by faces with different directions are averaged, with no crease
+  // angle, so a hard edge is smoothed unless the mesh splits the shared vertex.
   ATTRIBUTE_ID_NORMAL = 2;
   // Primary texture coordinate.
   ATTRIBUTE_ID_UV = 3;
   // Secondary texture coordinate.
   ATTRIBUTE_ID_UV_1 = 4;
   // Vertex color.
+  // The editor does not read this attribute. Set the colour on the entity with the
+  // Color component (style.v1) instead.
   ATTRIBUTE_ID_COLOR = 5;
 }
 
@@ -96,6 +110,8 @@ message AttributeMetadata {
   // How to find the specific attribute in the byte array.
   oneof accessor {
     // An offset into the byte array.
+    // Encoders must write this even when the value is 0, for the same reason as
+    // IndexMetadata.offset: a oneof member is serialised even at its default value.
     uint32 offset = 1;
 
     // An identifier into another metadata block, most likely embedded in the byte array itself.
@@ -118,6 +134,7 @@ message AttributeMetadata {
   AttributeDataType data_type = 6;
 
   // Offset to the start of the next attribute value.
+  // For a tightly packed FLOAT32 vec3 this is 12 bytes.
   uint32 stride = 7;
 
   // Indicates if the values should be normalized.
@@ -148,10 +165,13 @@ message IndexMetadata {
   // which embed the index access information.
   oneof accessor {
     // An offset into the byte array which indicates where the indices start.
+    // Encoders must write this even when the value is 0. In proto3, a zero in a
+    // plain field is omitted from the wire, but a oneof member is always serialised.
     uint32 offset = 1;
   }
 
   // The data type of the indices.
+  // Use INDEX_DATA_TYPE_UINT16 when num_vertices <= 65535, otherwise UINT32.
   IndexDataType data_type = 2;
 
   // The number of indices present in the data.
