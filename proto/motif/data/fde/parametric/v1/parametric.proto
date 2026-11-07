@@ -33,7 +33,7 @@ import "motif/extension/v1/options.proto";
 // "kernel" below need a geometry kernel; a reader without one (a client
 // preview) declines the part rather than approximating it.
 message AnalyticalAssetConfiguration {
-  option (motif.extension.v1.message).component = 219;
+  option (motif.extension.v1.message).component = 233;
 
   // Minimum reader version required to interpret this configuration. Always 3
   // for this component; reserved so a later semantic extension can bump it
