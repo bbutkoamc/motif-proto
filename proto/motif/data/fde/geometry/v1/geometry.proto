@@ -214,7 +214,7 @@ message TwoPointBarBehavior {
 // height. When they do not resolve, the authored plane is kept. Point hosts
 // write a plane and leave those references unresolved.
 message TrimmedHostingSurface {
-  option (motif.extension.v1.message).component = 221;
+  option (motif.extension.v1.message).component = 231;
 
   // The hosting plane. Unset decodes as the default plane at the origin.
   motif.data.geometry.v1.Plane surface = 1;
@@ -246,7 +246,7 @@ message TrimmedHostingSurface {
 
 // Names the `TrimmedHostingSurface` that makes an entity a host.
 message HostBehavior {
-  option (motif.extension.v1.message).component = 222;
+  option (motif.extension.v1.message).component = 232;
 
   // The reference is to the whole surface component.
   option (buf.validate.message).cel = {
