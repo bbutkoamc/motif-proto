@@ -67,8 +67,12 @@ message View {
 
 // A type definition for views. Carries the `ViewKind` and default parameter
 // values that serve as starting values when a new view is created from this type.
+//
+// Deprecated: view definitions are constructed at runtime, not copied from persisted
+// data, do not use.
 message ViewType {
   option (motif.extension.v1.message).component = 42;
+  option deprecated = true;
 
   // The kind of view this type produces.
   ViewKind kind = 1;
@@ -233,13 +237,29 @@ message ViewScale {
 //
 // Lives on the view the tags are drawn in. Absent means scale 1, matching tags
 // authored before this component existed.
+//
+// Deprecated: this functionality covered by other components, do not use.
 message ViewTagGraphics {
   option (motif.extension.v1.message).component = 186;
+  option deprecated = true;
 
   // Multiplier on the tags' paper size, including labels. Must be positive.
   // 1 is today's size; 0.6 draws heads, marks, arrows, tails, and numbers at
   // 0.6 of that size.
   double scale = 1 [(buf.validate.field).double.gt = 0];
+}
+
+// Model-space dimensions of a section tag's displayed extent. The tag's
+// transform supplies its center; its target view supplies the cut direction.
+// Shared by every view displaying the tag, independently of the view crop.
+message SectionTagExtent {
+  option (motif.extension.v1.message).component = 228;
+
+  // Length of the section line in plan views, in model units.
+  double width = 1 [(buf.validate.field).double.gt = 0];
+
+  // Length of the section line in elevation views, in model units.
+  double height = 2 [(buf.validate.field).double.gt = 0];
 }
 
 // Graphic break in a section view's cut-line marker. Lives on the section view

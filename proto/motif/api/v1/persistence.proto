@@ -5,6 +5,7 @@ package motif.api.v1;
 import "buf/validate/validate.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
+import "motif/data/external/v1/categories.proto";
 
 // The persistence service stores model state and changeset history.
 //
@@ -53,6 +54,23 @@ service Persistence {
   // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
   // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
   rpc ApplyChangeset(Changeset) returns (ChangesetResponse);
+
+  // Applies auxiliary components at an existing model version.
+  //
+  // This is to be used to apply data which is auxiliary to the primary changeset
+  // data and must never be used to capture source data authored by or on behalf of
+  // a user.  Auxiliary data are entirely reproducible from existing history
+  // bounded entities’ components.
+  //
+  // This is to append additional, supplmentary data to an existing model version.
+  // This write does not allocate a changeset version and is not to capture
+  // model semantics.
+  //
+  // A test for whether to use this or ApplyChangeset is to consider if the
+  // data is able to be entire regenerated without input from the author
+  // (e.g. view thumbnails, mesh rendered from source definitions,
+  // derived artifacts of uploaded documents, etc.).
+  rpc ApplyAuxiliary(ApplyAuxiliaryRequest) returns (ApplyAuxiliaryResponse);
 
   // Lists changeset metadata for a model.
   //
@@ -286,10 +304,22 @@ message ListChangesetRequest {
   // Number of elements to return in each page. Default behavior is
   // server-defined. Values must be 1..500, else returns INVALID_ARGUMENT.
   optional uint32 page_size = 4;
+
+  // Include complete stored results; default false. Unavailable or unreadable
+  // results are omitted without failing metadata. If an enriched response
+  // exceeds the configured message-size limit, retry with
+  // `include_semantic_history=false`.
+  bool include_semantic_history = 5;
 }
 
 // Metadata for one changeset in model history.
 message ChangesetListItem {
+  option (buf.validate.message).cel = {
+    id: "changeset_list_item.semantic_stage_applicability"
+    message: "a semantic result must include DERIVED exactly when has_derived is true"
+    expression: "!has(this.semantic_history) || this.semantic_history.stages.exists(result, result.stage == 69) == this.has_derived"
+  };
+
   // buf:lint:ignore ENUM_VALUE_PREFIX
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   enum ChangesetRace {
@@ -320,6 +350,96 @@ message ChangesetListItem {
   // Classifies whether the created changeset's and concurrent changes touched
   // the same entities. Certain race conditions will be rejected by the server.
   ChangesetRace race = 6;
+
+  // Complete result when requested and available. Empty stages are authoritative;
+  // omission preserves retained facts.
+  SemanticHistory semantic_history = 7;
+}
+
+// Complete facts for the enclosing version; replaces retained subsets.
+message SemanticHistory {
+  // Complete stage facts.
+  message StageResult {
+    option (buf.validate.message).cel = {
+      id: "semantic_history.unique_entities"
+      message: "entity changes must be unique within a stage"
+      expression: "this.entity_changes.map(entity, entity.entity_id).unique()"
+    };
+
+    // CLIENT or DERIVED.
+    Stage stage = 1 [(buf.validate.field).enum = {
+      in: [
+        10,
+        69
+      ]
+    }];
+
+    // Empty means a completed no-op.
+    repeated EntityChange entity_changes = 2;
+  }
+
+  // Entity lifecycle and classifications.
+  message EntityChange {
+    // Lifecycle change.
+    enum Verb {
+      // Invalid.
+      VERB_UNSPECIFIED = 0;
+      // Created.
+      VERB_CREATE = 1;
+      // Updated.
+      VERB_UPDATE = 2;
+      // Deleted.
+      VERB_DELETE = 3;
+    }
+
+    // Entity UUID.
+    bytes entity_id = 1 [(buf.validate.field).bytes.len = 16];
+    Verb verb = 2 [(buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    }];
+    // Independent assignments; empty can mean unclassified.
+    repeated Classification classifications = 3;
+    // May coexist with assignments; preserves unknown nonzero values.
+    optional ClassificationIssue classification_issue = 4 [(buf.validate.field).enum.not_in = 0];
+  }
+
+  // Typed source assignment.
+  message Classification {
+    oneof assignment {
+      option (buf.validate.oneof).required = true;
+
+      // Preserves unknown nonzero values.
+      motif.data.external.v1.RevitCategory revit_category = 1 [(buf.validate.field).enum.not_in = 0];
+      // Exact source string.
+      string ifc_class = 2 [(buf.validate.field).string.min_len = 1];
+    }
+  }
+
+  // Missing classification evidence.
+  enum ClassificationIssue {
+    // Omit instead.
+    CLASSIFICATION_ISSUE_UNSPECIFIED = 0;
+    // Evidence unavailable.
+    CLASSIFICATION_ISSUE_UNAVAILABLE = 1;
+  }
+
+  option (buf.validate.message).cel = {
+    id: "semantic_history.unique_stages"
+    message: "each persisted stage must appear once"
+    expression: "this.stages.map(result, result.stage).unique()"
+  };
+  option (buf.validate.message).cel = {
+    id: "semantic_history.client_stage"
+    message: "a semantic result must include CLIENT"
+    expression: "this.stages.exists(result, result.stage == 10)"
+  };
+
+  // CLIENT, plus DERIVED exactly when has_derived.
+  repeated StageResult stages = 1 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 2
+  }];
 }
 
 // Changeset history page for a model.
@@ -439,6 +559,10 @@ message ChangesetResponse {
     // The client's model is out of date because an entity in the changeset
     // changed after max_known_version. ConflictDetails provides more details.
     ERROR_CONCURRENT_ENTITY_UPDATE = 1;
+
+    // The payload contains an auxiliary data component.  Auxiliary data must use
+    // ApplyAuxiliary.
+    ERROR_AUXILIARY_COMPONENT_IN_PAYLOAD = 2;
   }
 }
 
@@ -487,6 +611,55 @@ message ChangesetStream {
 
   // Empty message that marks the streamed changeset complete.
   message Footer {}
+}
+
+// Stores auxiliary components at one existing model version.
+message ApplyAuxiliaryRequest {
+  // Model id which bounds the auxiliary components.
+  bytes model_id = 1;
+
+  // Existing model version at which these auxiliary components are stored.
+  // The write does not allocate a new changeset version.
+  int32 version = 2;
+
+  // Entities carrying the auxiliary components to store at `version`. Setting
+  // `Component.deleted` removes that auxiliary component. Setting
+  // `Entity.deleted` is rejected.
+  repeated Entity auxiliaries = 3;
+}
+
+// Result of storing auxiliary components without committing a changeset.
+message ApplyAuxiliaryResponse {
+  // Model id.  This echoes the request model id.
+  bytes model_id = 1;
+
+  // Either the updated auxiliary snapshot or an application-level rejection.
+  oneof result {
+    // Model version whose auxiliary components were updated. This echoes the
+    // request version and is not a newly allocated changeset version.
+    int32 version = 2;
+
+    // Reason the auxiliary components were not stored.
+    Error error = 3;
+  }
+
+  // Explains why a syntactically valid auxiliary payload was not stored.
+  enum Error {
+    // No rejection reason was specified.
+    ERROR_UNSPECIFIED = 0;
+
+    // Model must exist
+    ERROR_MODEL_DOES_NOT_EXIST = 1;
+
+    // Version must exist
+    ERROR_VERSION_DOES_NOT_EXIST = 2;
+
+    // Entity must exist
+    ERROR_ENTITY_DOES_NOT_EXIST = 3;
+
+    // Only auxiliary components can be added
+    ERROR_NON_AUXILIARY_COMPONENT_IN_PAYLOAD = 4;
+  }
 }
 
 // Requests a new changeset which restores the model state at "latest" to a prior
@@ -658,16 +831,31 @@ message ReferencedModelVersion {
 // other models, each of which must be viewable by the caller, unless the step
 // sets `host_model_only`.
 //
-// Errors: NOT_FOUND when the host model does not exist. A deleted (archived)
-// host model is traversed like any other.
+// There is no fixed limit on how many entities or models a traversal reaches,
+// and results are never truncated: a traversal returns every entity it
+// reaches, or fails. The server reads the graph in pieces of bounded size,
+// however many entities a traversal reaches or edges any one of them has, so
+// no request is refused for its size. The server limits how long the graph
+// walk runs (see WALK_TOO_LONG below).
+//
+// Errors returned instead of a stream: NOT_FOUND when the host model does not
+// exist. A deleted (archived) host model is traversed like any other.
 // FAILED_PRECONDITION, with ErrorInfo reason MODEL_NOT_INDEXED (domain
 // persistence.motif.io), when the host model has no reference index at the
 // requested version: the model predates reference indexing, or a version at or
 // before the requested one was written without maintaining the index. This does
-// not change on its own; read the model with Query instead. RESOURCE_EXHAUSTED
-// when the traversal would reach more than `max_nodes` entities or touch too
-// many models; results are never truncated.
-// INVALID_ARGUMENT when the request is malformed.
+// not change on its own; read the model with Query instead. INVALID_ARGUMENT
+// when the request is malformed.
+//
+// Errors that end the stream after the version header: UNAVAILABLE when a
+// graph read exceeds the server's time limit for one read; retry with backoff.
+// RESOURCE_EXHAUSTED, with ErrorInfo reason WALK_TOO_LONG (domain persistence.motif.io), when the
+// graph walk runs past the server's time limit for a whole walk, from its
+// start until its entities are ready to send. How long a walk takes depends on
+// how busy the server is as well as on the graph, so a retry can succeed; a
+// traversal that keeps failing this way must be narrowed. Other failures, such
+// as an access check on another model that cannot be completed, also end the
+// stream with their status.
 message TraverseReferencesRequest {
   // An entity the traversal starts from.
   message Root {
@@ -790,10 +978,8 @@ message TraverseReferencesRequest {
   // Traversal steps, run in order. With no steps, only the roots are returned.
   repeated Step steps = 5 [(buf.validate.field).repeated.max_items = 4];
 
-  // Maximum number of entities the traversal may reach, roots included. Zero
-  // selects the server default. Values above the server's cap are lowered to
-  // the cap.
-  uint32 max_nodes = 6;
+  // Deprecated: ignored. A traversal has no limit on the entities it reaches.
+  uint32 max_nodes = 6 [deprecated = true];
 }
 
 // Which components to return for traversed entities.
@@ -827,7 +1013,14 @@ message ComponentProjection {
 }
 
 // One message of a TraverseReferences stream: the version header first, then
-// the traversed entities in any order, then the summary last.
+// the traversed entities in any order, then the summary last. Progress
+// messages can arrive anywhere between the header and the summary. Entities
+// are sent once the graph walk is complete, so every field of a
+// TraversedEntity is final when it arrives; they stream as the caller reads
+// them.
+//
+// Callers must ignore payloads they do not recognize, so that new kinds of
+// message can be added to the stream without breaking them.
 message TraverseReferencesResponse {
   // An entity reached by a traversal.
   message TraversedEntity {
@@ -888,6 +1081,37 @@ message TraverseReferencesResponse {
     repeated OmittedModel omitted_models = 1;
   }
 
+  // Reports that the traversal is still running. A walk over a large graph
+  // can take a long time before any entity is ready. While the traversal is
+  // queued or walking the graph, the server sends one of these at least every
+  // 30 seconds; this also keeps the connection active through proxies that
+  // close idle connections. Progress messages can arrive anywhere between the
+  // header and the summary. Callers must tolerate them, and may otherwise
+  // ignore them.
+  message Progress {
+    // What the traversal is doing.
+    enum Phase {
+      // Invalid.
+      PHASE_UNSPECIFIED = 0;
+      // Waiting to start while the server runs other traversals.
+      PHASE_QUEUED = 1;
+      // Walking the graph.
+      PHASE_WALKING = 2;
+    }
+
+    // Entities the walk has reached so far, roots included. It never
+    // decreases, and consecutive messages can repeat it: it is zero while the
+    // traversal is queued, and it holds steady through a long graph read. It
+    // counts entities that will not be returned, such as roots in a model the
+    // caller cannot view, so it can exceed the number of entities returned.
+    uint64 entities_reached = 1;
+
+    // What the traversal is doing. A queued traversal has not started its
+    // walk, so the walk's time limit has not started either. Callers must
+    // tolerate phases they do not recognize.
+    Phase phase = 2;
+  }
+
   // The message payload.
   oneof payload {
     // Host model version the traversal read.
@@ -903,5 +1127,8 @@ message TraverseReferencesResponse {
 
     // Traversal summary.
     Summary summary = 3;
+
+    // Progress of the graph walk.
+    Progress progress = 4;
   }
 }
