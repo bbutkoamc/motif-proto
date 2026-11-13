@@ -34,6 +34,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v1
+      - uses: jdx/mise-action@v2
+      - run: mise run test:dimension-source-evolution
 
   # Publish named modules to the BSR (push to main) and archive labels for
   # deleted branches/tags (delete). Requires BUF_TOKEN, sourced from the
