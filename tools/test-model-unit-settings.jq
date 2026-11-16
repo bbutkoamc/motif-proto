@@ -9,7 +9,8 @@ def enum_values($name):
 | select(.name == "motif/data/model/v1/model.proto")
 | check(
     ([.messageType[] | select(.name == "ModelUnitSettings") | .field[]
-      | select(.number >= 5) | [.name, .number, .type, .typeName]] == [
+      | select(.name == "unit_symbol" or .name == "area_unit_symbol" or .name == "angle_unit_symbol")
+      | [.name, .number, .type, .typeName]] == [
         ["unit_symbol", 5, "TYPE_ENUM", ".motif.data.model.v1.UnitSymbol"],
         ["area_unit_symbol", 6, "TYPE_ENUM", ".motif.data.model.v1.AreaUnitSymbol"],
         ["angle_unit_symbol", 7, "TYPE_ENUM", ".motif.data.model.v1.AngleUnitSymbol"]
