@@ -34,6 +34,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v1
+        with:
+          # Match the local/evolution CLI pinned in .config/mise.toml.
+          version: "1.73.0"
       - uses: jdx/mise-action@v2
       - run: mise run test:dimension-source-evolution
 
@@ -50,4 +53,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: bufbuild/buf-action@v1
         with:
+          version: "1.73.0"
           token: ${{ secrets.BUF_TOKEN }}
