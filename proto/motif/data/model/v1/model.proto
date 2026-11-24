@@ -52,8 +52,13 @@ message Curve2 {
 message FreehandSketch {
   option (motif.extension.v1.message).component = 261;
 
-  // The curves of the stroke, in drawing order. Each is a planar NURBS in the entity's frame.
-  repeated motif.data.geometry.v1.Curve2 curves = 1;
+  // The pieces of the stroke, in drawing order, each a planar NURBS in the entity's frame. A
+  // partial erase can split one stroke into several pieces; the bound is a sanity limit that
+  // can be raised later.
+  repeated motif.data.geometry.v1.Nurbs2 curves = 1 [
+    (buf.validate.field).repeated.min_items = 1,
+    (buf.validate.field).repeated.max_items = 25
+  ];
 }
 
 // 3D point geometry.
