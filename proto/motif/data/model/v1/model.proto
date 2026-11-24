@@ -45,6 +45,17 @@ message Curve2 {
   motif.data.geometry.v1.Curve2 curve = 1;
 }
 
+// A freehand sketch: one hand-drawn stroke, kept as a list of curves so that a partial erase
+// can leave gaps while the entity stays one object. Starts with one curve. Moves and scales
+// as a whole; its control points are never edited one by one, and modeling tools (walls,
+// boundaries) do not accept it until it is converted to ordinary curves.
+message FreehandSketch {
+  option (motif.extension.v1.message).component = 261;
+
+  // The curves of the stroke, in drawing order. Each is a planar NURBS in the entity's frame.
+  repeated motif.data.geometry.v1.Curve2 curves = 1;
+}
+
 // 3D point geometry.
 message Point3 {
   option (motif.extension.v1.message).component = 138;
